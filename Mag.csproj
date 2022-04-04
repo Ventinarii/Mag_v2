@@ -10,7 +10,6 @@
     <Folder Include="DBI\" />
     <Folder Include="Physics\RigidBody\" />
     <Folder Include="Physics\Primitives\" />
-    <Folder Include="Render\" />
   </ItemGroup>
 
 </Project>
