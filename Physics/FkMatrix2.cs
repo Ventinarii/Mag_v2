@@ -8,11 +8,207 @@ namespace Mag.Physics
 {
     /// <summary>
     /// this is orginal implementation of matrix for use in physics engine
+    /// 
+    /// since this class fulfill 3 diffrent functions in code (rotate, scale and move(optional) it has MODE.
+    /// MODE is READONLY and is set on creation. 
+    /// call of function that is NOT compatible with MODE will result in Exception. This is intentinal and is meant to indidate that matrix is used in unusual way. 
+    /// if you want to call those methods ANYWAY then use Translation. 
     /// </summary>
-    internal class FkMatrix2
+    public class FkMatrix2
     {
-        public double[][] Matrix { get; set; }
-        public double RotationDeg { get; set; }
+        //public final matrix values
+        public readonly double 
+            d00, d01,
+            d10, d11;
 
+        //to avoid mess each matrix can fulfill only ONE function at the time
+        public enum Mode{ 
+            custom = 1,//SOME matrix defined by user - can be used to transform vector
+            rotation = 2,
+            strech = 3
+        }
+        public readonly Mode UsedAs;
+        //saved info about roatation (optional)
+        public readonly double RotationDeg;
+        //saved info about strech (optional)
+        public readonly FkVector2 StrechValue;
+        //cahe of reversed matrix
+        private FkMatrix2 reversed;
+
+        //=====================================================================================================================CONSTRUCTORS
+        /// <summary>
+        /// Create -=CUSTOM=- matrix
+        /// </summary>
+        /// <param name="d00"></param>
+        /// <param name="d01"></param>
+        /// <param name="d10"></param>
+        /// <param name="d11"></param>
+        public FkMatrix2(double d00, double d01, double d10, double d11)
+        {
+            this.d00 = d00; this.d01 = d01;
+            this.d10 = d10; this.d11 = d11;
+
+            UsedAs = Mode.custom;
+            this.RotationDeg = 0;
+            StrechValue = new FkVector2(0, 0);
+        }
+        /// <summary>
+        /// Create -=ROTATION=- matrix
+        /// </summary>
+        /// <param name="RotationDeg"></param>
+        public FkMatrix2(double RotationDeg)
+        {
+            double radians = FkMath.DegToRadians(RotationDeg);
+
+            d00 = Math.Cos(radians); d01 = -Math.Sin(radians);
+            d10 = -d01; d11 = d00;
+                      
+            UsedAs = Mode.rotation;
+            this.RotationDeg = RotationDeg;
+            StrechValue = new FkVector2(0, 0);
+        }
+        /// <summary>
+        /// Create -=STRECH=- matrix
+        /// </summary>
+        /// <param name="StrechValue"></param>
+        public FkMatrix2(FkVector2 StrechValue)
+        {
+            d00 = StrechValue.X;d01 = 0;
+            d10 = 0;d11 = StrechValue.Y;
+
+            UsedAs = Mode.strech;
+            this.RotationDeg = 0;
+            this.StrechValue = StrechValue;            
+        }
+        /// <summary>
+        /// DUPLICATE matrix AND it's MODE.
+        /// </summary>
+        /// <param name="copyOF"></param>
+        public FkMatrix2(FkMatrix2 copyOF)
+        {
+            this.d00 = copyOF.d00;
+            this.d01 = copyOF.d01;
+            this.d10 = copyOF.d10;
+            this.d11 = copyOF.d11;
+            this.RotationDeg = copyOF.RotationDeg;
+            this.StrechValue = copyOF.StrechValue;
+            this.UsedAs = copyOF.UsedAs;
+        }
+        /// <summary>
+        /// private constructor without ANY constrains. use with care.
+        /// </summary>
+        /// <param name="d00"></param>
+        /// <param name="d01"></param>
+        /// <param name="d10"></param>
+        /// <param name="d11"></param>
+        /// <param name="RotationDeg"></param>
+        /// <param name="StrechValue"></param>
+        /// <param name="UsedAs"></param>
+        private FkMatrix2(double d00, double d01, double d10, double d11, double RotationDeg = 0, FkVector2 StrechValue = null, Mode UsedAs = Mode.custom)
+        {
+            this.d00 = d00; this.d01 = d01;
+            this.d10 = d10; this.d11 = d11;
+            this.RotationDeg = RotationDeg;
+            this.StrechValue = StrechValue;
+            this.UsedAs = UsedAs;
+        }
+        
+        //=====================================================================================================================ROTATIONS
+        /// <summary>
+        /// For -=ROTATION=- matrix.
+        /// </summary>
+        /// <param name="v"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public FkVector2 Rotate(FkVector2 v)
+        {
+            if (UsedAs != Mode.rotation)
+                throw new InvalidOperationException("tried to rotate vector using "+UsedAs+" matrix");
+            return Translate(v);
+        }
+        /// <summary>
+        /// For -=ROTATION=- matrix.
+        /// </summary>
+        /// <param name="v"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public FkVector2 UnRotate(FkVector2 v)
+        {
+            if (UsedAs != Mode.rotation)
+                throw new InvalidOperationException("tried to rotate vector using " + UsedAs + " matrix");
+            return UnTranslate(v);
+        }
+        
+        //=====================================================================================================================STRECH
+        /// <summary>
+        /// For -=STRECH=- matrix.
+        /// </summary>
+        /// <param name="v"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public FkVector2 Strech(FkVector2 v)
+        {
+            if (UsedAs != Mode.strech)
+                throw new InvalidOperationException("tried to strech vector using " + UsedAs + " matrix");
+            return Translate(v);
+        }
+        /// <summary>
+        /// For -=STRECH=- matrix.
+        /// </summary>
+        /// <param name="v"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public FkVector2 UnStrech(FkVector2 v)
+        {
+            if (UsedAs != Mode.strech)
+                throw new InvalidOperationException("tried to strech vector using " + UsedAs + " matrix");
+            return UnTranslate(v);
+        }
+        
+        //=====================================================================================================================TECHNICAL
+        /// <summary>
+        /// For ANY matrix.
+        /// </summary>
+        /// <param name="v"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public FkVector2 Translate(FkVector2 v)
+        {
+            return new FkVector2(
+                    (v.X * d00) + (v.Y * d01),
+                    (v.X * d10) + (v.Y * d11)
+            );
+        }
+        /// <summary>
+        /// For ANY matrix.
+        /// </summary>
+        /// <param name="v"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public FkVector2 UnTranslate(FkVector2 v)
+        {
+            return getReversed().Translate(v);
+        }
+        /// <summary>
+        /// Used to reverse matrix. 
+        /// </summary>
+        /// <returns></returns>
+        public FkMatrix2 getReversed()
+        {
+            if (reversed == null)
+            {
+                double det = (d00 * d11) - (d10 * d01);
+                double n00 = d11, n01 = -d01,
+                       n10 = -d10, n11 = d00;
+
+                n00 /= det; 
+                n01 /= det;
+
+                n10 /= det; 
+                n11 /= det;
+                reversed = new FkMatrix2(n00, n01, n10, n11, -RotationDeg, StrechValue.Multiply(-1), UsedAs);
+            }
+            return reversed;
+        }
     }
 }

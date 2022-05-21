@@ -24,6 +24,7 @@ namespace Mag.Physics
             }
             return (val < from2) ? (from2) : ((to2 < val) ? (to2) : (val));
         }
+        
         /// <summary>
         /// this function i s used to check IF val is in between from and to regardless of that is greater
         /// </summary>
@@ -34,6 +35,7 @@ namespace Mag.Physics
         public static bool InRange(double from, double val, double to) {
             return (from < to) ? (from <= val && val <= to) : (to <= val && val <= from);
         }
+        
         /// <summary>
         /// absolute value of double d
         /// </summary>
@@ -42,6 +44,7 @@ namespace Mag.Physics
         public static double Abs(double d) {
             return (d < 0) ? (-d) : (d);
         }
+        
         /// <summary>
         /// check if 2 numbers are equal with error margin (numeric instability)
         /// return (Abs(value1 - value2) <= Abs(error));
@@ -50,9 +53,10 @@ namespace Mag.Physics
         /// <param name="value2">value to compare A</param>
         /// <param name="error">error margin</param>
         /// <returns></returns>
-        public static bool Equal(double value1, double value2, double error = 0.0001) {
+        public static bool EqualWIthError(double value1, double value2, double error = 0.0001) {
             return Abs(value1 - value2) <= Abs(error);
         }
+        
         /// <summary>
         /// this function is used to convert value in degrees (even multiplication of 360% or negative values)
         /// </summary>

@@ -1,4 +1,5 @@
-﻿using Mag.Render;
+﻿using Mag.Physics;
+using Mag.Render;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,8 +26,8 @@ namespace Mag
         {
             InitializeComponent();
             double d = 1;
-            
-            
+
+
         }
 
         void FkRAL.RenderAllFrames()

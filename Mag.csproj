@@ -9,7 +9,6 @@
   <ItemGroup>
     <Folder Include="DBI\" />
     <Folder Include="Physics\RigidBody\" />
-    <Folder Include="Physics\Primitives\" />
   </ItemGroup>
 
 </Project>
