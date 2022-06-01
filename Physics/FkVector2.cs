@@ -77,7 +77,7 @@ namespace Mag.Physics
         public bool EqualsStrict(FkVector2 other){
              return X == other.X && Y == other.Y;
         }
-        
+
         /// <summary>
         /// check if 2 vectrs are SIMILAR with error margin
         /// </summary>
@@ -103,6 +103,30 @@ namespace Mag.Physics
         public double Length()
         {
             return Math.Sqrt(X * X + Y * Y);
+        }
+
+        /// <summary>
+        /// returns dot product of 2 vectors
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        public double DotProdcut(FkVector2 other) {
+            return (this.X * other.X) + (this.Y * other.Y);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is FkVector2 vector &&
+                   X == vector.X &&
+                   Y == vector.Y;
+        }
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(X, Y);
+        }
+        public override string ToString()
+        {
+            return base.ToString()+$" X: {this.X},Y: {this.Y}";
         }
     }
 }
