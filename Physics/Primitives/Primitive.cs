@@ -20,7 +20,7 @@ namespace Mag.Physics.Primitives
         public readonly FkMatrix2 ScaleMatrix;
         public readonly bool IsBox;//in simulation we only got boxes(that can be streched using Scale) and circles
         public readonly bool IsStatic;//is the obect static (used as map boudary or obstacle)
-        
+
         /// <summary>
         /// this is single constructor for objects of this class. it can go without any arguments - in such a case it will: 
         /// generate Static Circle of radius 1 at X:0 Y:0 R:0 with dX:0 dY:0 dR:0
@@ -35,11 +35,11 @@ namespace Mag.Physics.Primitives
         /// <param name="IsStatic">Is movable. can't be changed</param>
         public Primitive(
             FkVector2 Position = null,
-            double Rotation = 0, 
+            double Rotation = 0,
             FkVector2 Velocity = null,
-            double Angular = 0, 
-            FkVector2 Scale = null, 
-            bool IsBox = false, 
+            double Angular = 0,
+            FkVector2 Scale = null,
+            bool IsBox = false,
             bool IsStatic = false) {
 
             if (Position == null)
@@ -57,7 +57,7 @@ namespace Mag.Physics.Primitives
             if (Scale == null)
                 Scale = new FkVector2(1, 1);
             Scale = Scale.Absoulte();
-            if (Scale.X < 0.1) 
+            if (Scale.X < 0.1)
                 Scale = new FkVector2(.1, Scale.Y);
             if (Scale.Y < 0.1)
                 Scale = new FkVector2(Scale.X, .1);
@@ -78,13 +78,40 @@ namespace Mag.Physics.Primitives
         /// <exception cref="InvalidOperationException"></exception>
         public bool PointInCircle(FkVector2 point)
         {
-            if (this == null || this.IsBox)
+            if (this.IsBox)
                 throw new InvalidOperationException("this is box, not circle");
 
             point = point.Subtract(this.Position);//now circle is point of reference
             return (point.LengthSquared()) <= (this.Scale.X * this.Scale.X);
         }
 
+        /// <summary>
+        /// check if line intersect circle
+        /// </summary>
+        /// <param name="lineStart"></param>
+        /// <param name="lineEnd"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public bool LineInCircle(FkVector2 lineStart, FkVector2 lineEnd) {
+            if (this.IsBox)
+                throw new InvalidOperationException("this is box, not circle");
+            lineStart = lineStart.Subtract(this.Position);
+            lineEnd = lineEnd.Subtract(this.Position);
+
+            var radius2 = Scale.X * this.Scale.X;
+            if ((lineStart.LengthSquared() <= radius2) || (lineEnd.LengthSquared() <= radius2))
+                return true;
+
+            var ab = lineEnd.Subtract(lineStart);
+            var t = lineStart.Multiply(-1).DotProdcut(ab) / ab.DotProdcut(ab);
+
+            if (!FkMath.InRange(0, t, 1))
+                return false;
+
+            var randevu = lineStart.Add(ab.Multiply(t));
+
+            return randevu.LengthSquared() <= radius2;
+        }
         //========================================================================================================================box functionality
 
         /// <summary>
@@ -98,7 +125,7 @@ namespace Mag.Physics.Primitives
 
             FkVector2[] corners = new FkVector2[4];
             corners[0] = this.Scale;
-            corners[1] = new FkVector2(Scale.X,-Scale.Y);
+            corners[1] = new FkVector2(Scale.X, -Scale.Y);
             corners[2] = corners[0].Multiply(-1);
             corners[3] = corners[1].Multiply(-1);
             return corners;
@@ -165,6 +192,61 @@ namespace Mag.Physics.Primitives
             return corners;
         }
 
+        /// <summary>
+        /// checks if box contains given point
+        /// </summary>
+        /// <param name="point"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public bool PointInBox(FkVector2 point) {
+            if (!this.IsBox)
+                throw new InvalidOperationException("this is circle, not box");
+
+            point = point.Subtract(this.Position);//now box center is point of reference
+            point = new FkMatrix2(-this.Rotation).Rotate(point);//now box is aligned with axes
+
+            return FkMath.InRange(-Scale.X - 0.01, point.X, Scale.X + 0.01) &&
+                   FkMath.InRange(-Scale.Y - 0.01, point.Y, Scale.Y + 0.01);
+        }
+
+        /// <summary>
+        /// check if line intersect box
+        /// </summary>
+        /// <param name="lineStart"></param>
+        /// <param name="lineEnd"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public bool LineInBox(FkVector2 lineStart, FkVector2 lineEnd)
+        {
+            if (!this.IsBox)
+                throw new InvalidOperationException("this is circle, not box");
+
+            var matrix = new FkMatrix2(-this.Rotation);
+
+            lineStart = matrix.Rotate(lineStart.Subtract(this.Position));
+            lineEnd = matrix.Rotate(lineEnd.Subtract(this.Position));
+
+            if (FkMath.InRange(-Scale.X - 0.01, lineStart.X, Scale.X + 0.01) &&
+                FkMath.InRange(-Scale.Y - 0.01, lineStart.Y, Scale.Y + 0.01))
+                return true;
+            if (FkMath.InRange(-Scale.X - 0.01, lineEnd.X, Scale.X + 0.01) &&
+                FkMath.InRange(-Scale.Y - 0.01, lineEnd.Y, Scale.Y + 0.01))
+                return true;
+
+            var vert = BoxGetVertices();
+
+            return
+                LineOnLine(lineStart, lineEnd, vert[0], vert[1]) ||
+                LineOnLine(lineStart, lineEnd, vert[1], vert[2]) ||
+                LineOnLine(lineStart, lineEnd, vert[2], vert[3]) ||
+                LineOnLine(lineStart, lineEnd, vert[3], vert[0]) ||
+
+                PointOnLine(lineStart, lineEnd, vert[0]) ||
+                PointOnLine(lineStart, lineEnd, vert[1]) ||
+                PointOnLine(lineStart, lineEnd, vert[2]) ||
+                PointOnLine(lineStart, lineEnd, vert[3]);
+        }
+
         //========================================================================================================================shared functionality
 
         /// <summary>
@@ -174,7 +256,7 @@ namespace Mag.Physics.Primitives
         /// as a source of points to compare. 
         /// </summary>
         /// <returns>first value is minimum, second maximum</returns>
-        public C2<FkVector2,FkVector2> getMinMaxRelative() {
+        public C2<FkVector2, FkVector2> getMinMaxRelative() {
             if (this.IsBox)
             {
                 var corners = BoxGetVerticesRelativeRotated();
@@ -219,7 +301,7 @@ namespace Mag.Physics.Primitives
         }
 
         //========================================================================================================================physics functionality
-        
+
         /// <summary>
         /// checks if bouding box of this promitive is in collision with bouding box of other primitive.
         /// </summary>
@@ -254,7 +336,7 @@ namespace Mag.Physics.Primitives
                 FkMath.InRange(mx0.a.Y, other.Y, mx0.b.Y);
         }
 
-        public double GetInertiaTensor(double mass) { 
+        public double GetInertiaTensor(double mass) {
             throw new NotImplementedException();
         }
 
@@ -284,12 +366,37 @@ namespace Mag.Physics.Primitives
                 return true;
             point = point.Multiply(1 / pointLength);//get direction vector of point
 
-            return lineEnd.EqualWIthError(point) && (pointLength<=(lineLength+0.01));
+            return lineEnd.EqualWIthError(point) && (pointLength <= (lineLength + 0.01));
         }
 
+        /// <summary>
+        /// checks if 2 lines colide
+        /// https://stackoverflow.com/questions/3838329/how-can-i-check-if-two-segments-intersect
+        /// 
+        /// will return TRUE IF:
+        /// -lines intersect
+        /// -one line end in on another LINE
+        /// 
+        /// will return FALSE IF:
+        /// -one line ending touches another line ending
+        /// -lines DO NOT intersect
+        /// 
+        /// warry: colinear solution.
+        /// </summary>
+        /// <param name="aStart"></param>
+        /// <param name="aEnd"></param>
+        /// <param name="bStart"></param>
+        /// <param name="bEnd"></param>
+        /// <returns></returns>
+        public static bool LineOnLine(FkVector2 aStart, FkVector2 aEnd, FkVector2 bStart, FkVector2 bEnd) {
+            return 
+                LineOnLineCCW(aStart, bStart, bEnd) != LineOnLineCCW(aEnd, bStart, bEnd) &&
+                LineOnLineCCW(aStart, aEnd, bStart) != LineOnLineCCW(aStart, aEnd, bEnd);
+        }
+        private static bool LineOnLineCCW(FkVector2 a, FkVector2 b, FkVector2 c){
+            return (c.Y - a.Y) * (b.X - a.X) > (b.Y - a.Y) * (c.X - a.X);
+        }
         //========================================================================================================================render functionality (for RAL)
-
-
 
     }
 }
