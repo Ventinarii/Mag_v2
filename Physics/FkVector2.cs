@@ -68,7 +68,16 @@ namespace Mag.Physics
         public FkVector2 Multiply(double a){
             return new FkVector2(X * a, Y * a);
         }
-        
+
+        /// <summary>
+        /// Multiply this Vector component-wise by another Vector
+        /// </summary>
+        /// <param name="a"></param>
+        /// <returns></returns>
+        public FkVector2 Multiply(FkVector2 a) { 
+            return new FkVector2 (X * a.X, Y * a.Y);
+        }
+
         /// <summary>
         /// check if 2 vectors are THE SAME (vunrable to numeric instability)
         /// </summary>

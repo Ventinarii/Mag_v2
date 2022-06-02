@@ -112,6 +112,7 @@ namespace Mag.Physics.Primitives
 
             return randevu.LengthSquared() <= radius2;
         }
+
         //========================================================================================================================box functionality
 
         /// <summary>
@@ -211,6 +212,8 @@ namespace Mag.Physics.Primitives
 
         /// <summary>
         /// check if line intersect box
+        /// 
+        /// NOTE: solution ttrl#7 while is quicker it has THE SAME problem as org## and thus "chk for sneaky #1" was added.
         /// </summary>
         /// <param name="lineStart"></param>
         /// <param name="lineEnd"></param>
@@ -235,16 +238,46 @@ namespace Mag.Physics.Primitives
 
             var vert = BoxGetVertices();
 
+            //=====chk for sneaky #1
+            if(PointOnLine(lineStart, lineEnd, vert[0]) ||//check for sneaky colinear colision (case B in unit test)
+               PointOnLine(lineStart, lineEnd, vert[1]) ||
+               PointOnLine(lineStart, lineEnd, vert[2]) ||
+               PointOnLine(lineStart, lineEnd, vert[3]))
+                return true;
+
+            //====================================================================================ttrl#7>>
+
+            var unitVector = lineEnd.Subtract(lineStart);
+            var unitVectorLength = unitVector.Length();
+            if (unitVectorLength == 0)
+                return true;
+            unitVector = unitVector.Multiply(1/ unitVectorLength);
+
+            unitVector = new FkVector2(
+                (unitVector.X != 0) ? (1 / unitVector.X) : (0),
+                (unitVector.Y != 0) ? (1 / unitVector.Y) : (0));
+
+            var min = Scale.Multiply(-1);
+            min = min.Subtract(lineStart).Multiply(unitVector);
+            var max = Scale;
+            max = max.Subtract(lineStart).Multiply(unitVector);
+
+            var tmin = Math.Max(Math.Min(min.X, max.X), Math.Min(min.Y, max.Y));
+            var tmax = Math.Min(Math.Max(min.X, max.X), Math.Max(min.Y, max.Y));
+            if (tmax < 0 || tmin > tmax)
+                return false;
+
+            var t = (tmin < 0) ? tmax : tmin;
+            return t > 0 && t * t < lineEnd.Subtract(lineStart).LengthSquared();
+
+            //====================================================================================org##>>
+            /* too expensive 
             return
                 LineOnLine(lineStart, lineEnd, vert[0], vert[1]) ||
                 LineOnLine(lineStart, lineEnd, vert[1], vert[2]) ||
                 LineOnLine(lineStart, lineEnd, vert[2], vert[3]) ||
-                LineOnLine(lineStart, lineEnd, vert[3], vert[0]) ||
-
-                PointOnLine(lineStart, lineEnd, vert[0]) ||
-                PointOnLine(lineStart, lineEnd, vert[1]) ||
-                PointOnLine(lineStart, lineEnd, vert[2]) ||
-                PointOnLine(lineStart, lineEnd, vert[3]);
+                LineOnLine(lineStart, lineEnd, vert[3], vert[0]);
+            */
         }
 
         //========================================================================================================================shared functionality
@@ -336,6 +369,75 @@ namespace Mag.Physics.Primitives
                 FkMath.InRange(mx0.a.Y, other.Y, mx0.b.Y);
         }
 
+        /// <summary>
+        /// copy-paste of LineInBox()
+        /// 
+        /// check if line intersect AABB box
+        /// 
+        /// NOTE: solution ttrl#7 while is quicker it has THE SAME problem as org## and thus "chk for sneaky #1" was added.
+        /// </summary>
+        /// <param name="lineStart"></param>
+        /// <param name="lineEnd"></param>
+        /// <returns></returns>
+        public bool AABBcolision(FkVector2 lineStart, FkVector2 lineEnd)
+        {
+
+            lineStart = lineStart.Subtract(this.Position);
+            lineEnd = lineEnd.Subtract(this.Position);
+
+            var minMax = getMinMaxRelative();
+
+            if (FkMath.InRange(minMax.a.X - 0.01, lineStart.X, minMax.b.X + 0.01) &&
+                FkMath.InRange(minMax.a.Y - 0.01, lineStart.Y, minMax.b.Y + 0.01))
+                return true;
+            if (FkMath.InRange(-minMax.a.X - 0.01, lineEnd.X, minMax.b.X + 0.01) &&
+                FkMath.InRange(-minMax.a.Y - 0.01, lineEnd.Y, minMax.b.Y + 0.01))
+                return true;
+
+            var vert = BoxGetVertices();
+
+            //=====chk for sneaky #1
+            if (PointOnLine(lineStart, lineEnd, vert[0]) ||//check for sneaky colinear colision (case B in unit test)
+               PointOnLine(lineStart, lineEnd, vert[1]) ||
+               PointOnLine(lineStart, lineEnd, vert[2]) ||
+               PointOnLine(lineStart, lineEnd, vert[3]))
+                return true;
+
+            //====================================================================================ttrl#7>>
+
+            var unitVector = lineEnd.Subtract(lineStart);
+            var unitVectorLength = unitVector.Length();
+            if (unitVectorLength == 0)
+                return true;
+            unitVector = unitVector.Multiply(1 / unitVectorLength);
+
+            unitVector = new FkVector2(
+                (unitVector.X != 0) ? (1 / unitVector.X) : (0),
+                (unitVector.Y != 0) ? (1 / unitVector.Y) : (0));
+
+            var min = minMax.a;
+            min = min.Subtract(lineStart).Multiply(unitVector);
+            var max = minMax.b;
+            max = max.Subtract(lineStart).Multiply(unitVector);
+
+            var tmin = Math.Max(Math.Min(min.X, max.X), Math.Min(min.Y, max.Y));
+            var tmax = Math.Min(Math.Max(min.X, max.X), Math.Max(min.Y, max.Y));
+            if (tmax < 0 || tmin > tmax)
+                return false;
+
+            var t = (tmin < 0) ? tmax : tmin;
+            return t > 0 && t * t < lineEnd.Subtract(lineStart).LengthSquared();
+
+            //====================================================================================org##>>
+            /* too expensive 
+            return
+                LineOnLine(lineStart, lineEnd, vert[0], vert[1]) ||
+                LineOnLine(lineStart, lineEnd, vert[1], vert[2]) ||
+                LineOnLine(lineStart, lineEnd, vert[2], vert[3]) ||
+                LineOnLine(lineStart, lineEnd, vert[3], vert[0]);
+            */
+        }
+
         public double GetInertiaTensor(double mass) {
             throw new NotImplementedException();
         }
@@ -396,6 +498,7 @@ namespace Mag.Physics.Primitives
         private static bool LineOnLineCCW(FkVector2 a, FkVector2 b, FkVector2 c){
             return (c.Y - a.Y) * (b.X - a.X) > (b.Y - a.Y) * (c.X - a.X);
         }
+
         //========================================================================================================================render functionality (for RAL)
 
     }
