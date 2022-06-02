@@ -62,7 +62,7 @@ namespace Mag.Physics
         {
             double radians = FkMath.DegToRadians(RotationDeg);
 
-            d00 = Math.Cos(radians); d01 = -Math.Sin(radians);
+            d00 = Math.Cos(radians); d01 = Math.Sin(radians);
             d10 = -d01; d11 = d00;
                       
             UsedAs = Mode.rotation;
