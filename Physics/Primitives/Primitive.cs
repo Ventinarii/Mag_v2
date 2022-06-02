@@ -70,8 +70,23 @@ namespace Mag.Physics.Primitives
 
         //========================================================================================================================circle functionality
 
+        /// <summary>
+        /// checks if circle contains given point
+        /// </summary>
+        /// <param name="point"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public bool PointInCircle(FkVector2 point)
+        {
+            if (this == null || this.IsBox)
+                throw new InvalidOperationException("this is box, not circle");
+
+            point = point.Subtract(this.Position);//now circle is point of reference
+            return (point.LengthSquared()) <= (this.Scale.X * this.Scale.X);
+        }
+
         //========================================================================================================================box functionality
-        
+
         /// <summary>
         /// -returns all (4) corners of the box in array ([4]) based of scale. every box is size of (1,1) so scale IS box size.
         /// </summary>
@@ -220,16 +235,60 @@ namespace Mag.Physics.Primitives
             var mxSUMB = mx0.b.Add(mx1.b);
 
             return
-                (mxSUMA.X <= delta.X) && (delta.X <= mxSUMB.X) &&
-                (mxSUMA.Y <= delta.Y) && (delta.Y <= mxSUMB.Y);
+                FkMath.InRange(mxSUMA.X, delta.X, mxSUMB.X) &&
+                FkMath.InRange(mxSUMA.Y, delta.Y, mxSUMB.Y);
         }
 
+        /// <summary>
+        /// checks if bouding box of this promitive contains given point
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        public bool AABBcolision(FkVector2 other) {
+            other = this.Position.Subtract(other);
+
+            var mx0 = getMinMaxRelative();
+
+            return
+                FkMath.InRange(mx0.a.X, other.X, mx0.b.X) &&
+                FkMath.InRange(mx0.a.Y, other.Y, mx0.b.Y);
+        }
 
         public double GetInertiaTensor(double mass) { 
             throw new NotImplementedException();
         }
 
+        //========================================================================================================================InsersectionDetector 2D
+
+        /// <summary>
+        /// check if given point is on given line
+        /// </summary>
+        /// <param name="lineStart"></param>
+        /// <param name="lineEnd"></param>
+        /// <param name="point"></param>
+        /// <returns></returns>
+        public static bool PointOnLine(FkVector2 lineStart, FkVector2 lineEnd, FkVector2 point)
+        {
+            lineEnd = lineEnd.Subtract(lineStart);
+            point = point.Subtract(lineStart);
+            //now linestart is 0,0  and we only care about those 2
+
+            var lineLength = lineEnd.Length();//get length of line
+            if (lineLength < 0.01)
+                return false;//if line too short return false
+
+            lineEnd = lineEnd.Multiply(1 / lineLength);//get direction vector of line
+
+            var pointLength = point.Length();//get length of point
+            if (pointLength < 0.01)
+                return true;
+            point = point.Multiply(1 / pointLength);//get direction vector of point
+
+            return lineEnd.EqualWIthError(point) && (pointLength<=(lineLength+0.01));
+        }
+
         //========================================================================================================================render functionality (for RAL)
+
 
 
     }
