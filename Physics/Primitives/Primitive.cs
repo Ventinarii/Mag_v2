@@ -113,6 +113,45 @@ namespace Mag.Physics.Primitives
             return randevu.LengthSquared() <= radius2;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="orgin"></param>
+        /// <param name="direction"></param>
+        /// <returns>point of hit; normal of hit; t; hit?</returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public C4<FkVector2, FkVector2, double, bool> RayCastCircle(FkVector2 orgin, FkVector2 direction) {
+            orgin = orgin.Subtract(this.Position);//<< relative computing
+            var fail = new C4<FkVector2, FkVector2, double, bool>(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
+            if (direction.LengthSquared() < 0.01) return fail;//<< drop if NaN
+            direction = direction.Normalize();
+
+            //var orginToCircle = this.Position.Subtract(orgin);
+            var orginToCircle = orgin.Multiply(-1);//<< relative computing
+            var radius2 = Scale.X * Scale.X;
+            var orginToCircle2 = orginToCircle.LengthSquared();
+
+            // projection
+            var a = orginToCircle.DotProdcut(direction);
+            var bSq = orginToCircle2 - (a * a);
+            if (radius2 - bSq < 0)
+                return fail;
+
+            var f = Math.Sqrt(radius2 - bSq);
+            var t = a - f;
+            if (orginToCircle2 < radius2)
+                t = a + f;
+
+            if (t < 0) return fail;//<< drop if imaginary
+
+            //var pointOfHit = orgin.Add(direction.Multiply(t));
+            var pointOfHit = orgin.Add(direction.Multiply(t));//<< relative computing
+            //var normalOfHit = pointOfHit.Subtract(this.Position).Normalize();
+            var normalOfHit = pointOfHit.Multiply(-1).Normalize();//<< relative computing
+            var pointOfHitOff = pointOfHit.Add(this.Position);//<< relative computing
+            return new C4<FkVector2, FkVector2, double, bool>(pointOfHitOff, normalOfHit, t, true);
+        }
+
         //========================================================================================================================box functionality
 
         /// <summary>
@@ -280,6 +319,20 @@ namespace Mag.Physics.Primitives
             */
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="orgin"></param>
+        /// <param name="direction"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public C4<FkVector2, FkVector2, double, bool> RayCastBox(FkVector2 orgin, FkVector2 direction)
+        {
+            if (!this.IsBox)
+                throw new InvalidOperationException("this is circle, not box");
+            throw new NotImplementedException();
+        }
+
         //========================================================================================================================shared functionality
 
         /// <summary>
@@ -436,6 +489,30 @@ namespace Mag.Physics.Primitives
                 LineOnLine(lineStart, lineEnd, vert[2], vert[3]) ||
                 LineOnLine(lineStart, lineEnd, vert[3], vert[0]);
             */
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="orgin"></param>
+        /// <param name="direction"></param>
+        /// <param name="AABB"></param>
+        /// <returns></returns>
+        public C4<FkVector2, FkVector2, double, bool> RayCastAABB(FkVector2 orgin, FkVector2 direction, bool AABB)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="orgin"></param>
+        /// <param name="direction"></param>
+        /// <param name="AABB"></param>
+        /// <returns></returns>
+        private C4<FkVector2, FkVector2, double, bool> RayCastBoxOrthogonal(FkVector2 orgin, FkVector2 direction, bool AABB)
+        {
+            throw new NotImplementedException();
         }
 
         public double GetInertiaTensor(double mass) {

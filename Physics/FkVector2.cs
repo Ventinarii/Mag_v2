@@ -79,6 +79,14 @@ namespace Mag.Physics
         }
 
         /// <summary>
+        /// return direction vector of length 1
+        /// </summary>
+        /// <returns></returns>
+        public FkVector2 Normalize() {
+            return this.Multiply(1 / this.Length());
+        }
+
+        /// <summary>
         /// check if 2 vectors are THE SAME (vunrable to numeric instability)
         /// </summary>
         /// <param name="other"></param>
@@ -123,6 +131,7 @@ namespace Mag.Physics
             return (this.X * other.X) + (this.Y * other.Y);
         }
 
+        
         public override bool Equals(object obj)
         {
             return obj is FkVector2 vector &&
