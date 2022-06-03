@@ -319,8 +319,7 @@ namespace Mag.Physics.Primitives
         }
 
         /// <summary>
-        /// v1) since this and Raycast agaist AABB is one and the same this method rotates raycast to make use of written code. afterwards all vectors are re rotated
-        /// v2) local solution
+        /// 
         /// </summary>
         /// <param name="orgin"></param>
         /// <param name="direction"></param>
@@ -330,21 +329,7 @@ namespace Mag.Physics.Primitives
         {
             if (!this.IsBox)
                 throw new InvalidOperationException("this is circle, not box");
-
-            var mat = new FkMatrix2(-this.Rotation);
-
-            orgin =
-                mat.Rotate(
-                    orgin.Subtract(this.Position)
-                ).Add(Position);
-            var result = RayCastAABB(orgin, direction);
-
-            result.a = mat.UnRotate(
-                    result.a.Subtract(this.Position)
-                ).Add(Position);
-            result.b = mat.UnRotate(result.b);
-
-            return result;
+            return RayCastBoxInternal(orgin,direction,true);
         }
 
         //========================================================================================================================shared functionality
@@ -512,28 +497,37 @@ namespace Mag.Physics.Primitives
         /// <param name="direction"></param>
         /// <param name="skipRotation">DO -=NOT=- USE THIS PARAM. it is for internal call only</param>
         /// <returns></returns>
-        public C4<FkVector2, FkVector2, double, bool> RayCastAABB(FkVector2 orgin, FkVector2 direction, bool skipRotation = false)
+        public C4<FkVector2, FkVector2, double, bool> RayCastAABB(FkVector2 orgin, FkVector2 direction)
+        {
+            return RayCastBoxInternal(orgin, direction, false);
+        }
+
+        private C4<FkVector2, FkVector2, double, bool> RayCastBoxInternal(FkVector2 orgin, FkVector2 direction, bool box)
         {
             var fail = new C4<FkVector2, FkVector2, double, bool>(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
             orgin = orgin.Subtract(this.Position);
+            if (direction.LengthSquared() == 0)
+                return fail;
+
             direction = direction.Normalize();
-
-
+            
             C2<FkVector2, FkVector2> minMax;
-            if (skipRotation)
+            FkMatrix2 mat = null;
+            if (box){
                 minMax = new C2<FkVector2, FkVector2>(this.Scale.Multiply(-1), this.Scale);
+
+                mat = new FkMatrix2(-this.Rotation);
+                orgin = mat.Rotate(orgin);
+                direction = mat.Rotate(direction);
+            }
             else
                 minMax = getMinMaxRelative();
 
 
-            var vert = BoxGetVerticesRelative();
-
             var unitVector = direction;
             var unitVectorLength = unitVector.Length();
-            if (unitVectorLength == 0)
-                return fail;
+            
             unitVector = unitVector.Multiply(1 / unitVectorLength);
-
             unitVector = new FkVector2(
                 (unitVector.X != 0) ? (1 / unitVector.X) : (0),
                 (unitVector.Y != 0) ? (1 / unitVector.Y) : (0));
@@ -549,12 +543,18 @@ namespace Mag.Physics.Primitives
                 return fail;
 
             var t = (tmin < 0) ? tmax : tmin;
-            if (t < 0) return fail;
+            if (t < 0) 
+                return fail;
 
             //var pointOfHit = orgin.Add(direction.Multiply(t));
             var pointOfHit = orgin.Add(direction.Multiply(t));//<< relative computing
             //var normalOfHit = pointOfHit.Subtract(this.Position).Normalize();
             var normalOfHit = pointOfHit.Multiply(-1).Normalize();//<< relative computing
+            if (box)
+            {
+                pointOfHit = mat.UnRotate(pointOfHit);
+                normalOfHit = mat.UnRotate(normalOfHit);
+            }
             var pointOfHitOff = pointOfHit.Add(this.Position);//<< relative computing
             return new C4<FkVector2, FkVector2, double, bool>(pointOfHitOff, normalOfHit, t, true);
         }
