@@ -329,7 +329,11 @@ namespace Mag.Physics.Primitives
         {
             if (!this.IsBox)
                 throw new InvalidOperationException("this is circle, not box");
-            return RayCastBoxInternal(orgin,direction,true);
+            var fail = new C4<FkVector2, FkVector2, double, bool>(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
+
+
+
+            return null;//new C4<FkVector2, FkVector2, double, bool>(pointOfHitOff, normalOfHit, t, true);
         }
 
         //========================================================================================================================shared functionality
@@ -433,9 +437,13 @@ namespace Mag.Physics.Primitives
         /// <returns></returns>
         public bool AABBcolision(FkVector2 lineStart, FkVector2 lineEnd)
         {
-
             lineStart = lineStart.Subtract(this.Position);
             lineEnd = lineEnd.Subtract(this.Position);
+
+            if (lineStart.X == lineEnd.X)
+                lineEnd = new FkVector2(lineEnd.X + 0.0001, lineEnd.Y);
+            if (lineStart.Y == lineEnd.Y)
+                lineEnd = new FkVector2(lineEnd.X, lineEnd.Y + 0.0001);
 
             var minMax = getMinMaxRelative();
 
@@ -458,10 +466,10 @@ namespace Mag.Physics.Primitives
             //====================================================================================ttrl#7>>
 
             var unitVector = lineEnd.Subtract(lineStart);
-            var unitVectorLength = unitVector.Length();
+            var unitVectorLength = unitVector.LengthSquared();
             if (unitVectorLength == 0)
                 return true;
-            unitVector = unitVector.Multiply(1 / unitVectorLength);
+            unitVector = unitVector.Normalize();
 
             unitVector = new FkVector2(
                 (unitVector.X != 0) ? (1 / unitVector.X) : (0),
@@ -499,43 +507,25 @@ namespace Mag.Physics.Primitives
         /// <returns></returns>
         public C4<FkVector2, FkVector2, double, bool> RayCastAABB(FkVector2 orgin, FkVector2 direction)
         {
-            return RayCastBoxInternal(orgin, direction, false);
-        }
-
-        private C4<FkVector2, FkVector2, double, bool> RayCastBoxInternal(FkVector2 orgin, FkVector2 direction, bool box)
-        {
             var fail = new C4<FkVector2, FkVector2, double, bool>(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
-            orgin = orgin.Subtract(this.Position);
             if (direction.LengthSquared() == 0)
                 return fail;
 
+            var minMax = getMinMaxRelative();
+
+
             direction = direction.Normalize();
-            
-            C2<FkVector2, FkVector2> minMax;
+
             FkMatrix2 mat = null;
-            if (box){
-                minMax = new C2<FkVector2, FkVector2>(this.Scale.Multiply(-1), this.Scale);
 
-                mat = new FkMatrix2(-this.Rotation);
-                orgin = mat.Rotate(orgin);
-                direction = mat.Rotate(direction);
-            }
-            else
-                minMax = getMinMaxRelative();
-
-
-            var unitVector = direction;
-            var unitVectorLength = unitVector.Length();
-            
-            unitVector = unitVector.Multiply(1 / unitVectorLength);
-            unitVector = new FkVector2(
-                (unitVector.X != 0) ? (1 / unitVector.X) : (0),
-                (unitVector.Y != 0) ? (1 / unitVector.Y) : (0));
+            direction = new FkVector2(
+                (direction.X != 0) ? (1 / direction.X) : (0),
+                (direction.Y != 0) ? (1 / direction.Y) : (0));
 
             var min = minMax.a;
-            min = min.Subtract(orgin).Multiply(unitVector);
+            min = min.Subtract(orgin).Multiply(direction);
             var max = minMax.b;
-            max = max.Subtract(orgin).Multiply(unitVector);
+            max = max.Subtract(orgin).Multiply(direction);
 
             var tmin = Math.Max(Math.Min(min.X, max.X), Math.Min(min.Y, max.Y));
             var tmax = Math.Min(Math.Max(min.X, max.X), Math.Max(min.Y, max.Y));
@@ -543,20 +533,17 @@ namespace Mag.Physics.Primitives
                 return fail;
 
             var t = (tmin < 0) ? tmax : tmin;
-            if (t < 0) 
+
+            if (t < 0)
                 return fail;
 
             //var pointOfHit = orgin.Add(direction.Multiply(t));
             var pointOfHit = orgin.Add(direction.Multiply(t));//<< relative computing
             //var normalOfHit = pointOfHit.Subtract(this.Position).Normalize();
             var normalOfHit = pointOfHit.Multiply(-1).Normalize();//<< relative computing
-            if (box)
-            {
-                pointOfHit = mat.UnRotate(pointOfHit);
-                normalOfHit = mat.UnRotate(normalOfHit);
-            }
+
             var pointOfHitOff = pointOfHit.Add(this.Position);//<< relative computing
-            return new C4<FkVector2, FkVector2, double, bool>(pointOfHitOff, normalOfHit, t, true);
+            return new C4<FkVector2, FkVector2, double, bool>(pointOfHitOff, normalOfHit, t, true);*/
         }
 
         public double GetInertiaTensor(double mass) {
@@ -590,34 +577,6 @@ namespace Mag.Physics.Primitives
             point = point.Multiply(1 / pointLength);//get direction vector of point
 
             return lineEnd.EqualWIthError(point) && (pointLength <= (lineLength + 0.01));
-        }
-
-        /// <summary>
-        /// checks if 2 lines colide
-        /// https://stackoverflow.com/questions/3838329/how-can-i-check-if-two-segments-intersect
-        /// 
-        /// will return TRUE IF:
-        /// -lines intersect
-        /// -one line end in on another LINE
-        /// 
-        /// will return FALSE IF:
-        /// -one line ending touches another line ending
-        /// -lines DO NOT intersect
-        /// 
-        /// warry: colinear solution.
-        /// </summary>
-        /// <param name="aStart"></param>
-        /// <param name="aEnd"></param>
-        /// <param name="bStart"></param>
-        /// <param name="bEnd"></param>
-        /// <returns></returns>
-        public static bool LineOnLine(FkVector2 aStart, FkVector2 aEnd, FkVector2 bStart, FkVector2 bEnd) {
-            return 
-                LineOnLineCCW(aStart, bStart, bEnd) != LineOnLineCCW(aEnd, bStart, bEnd) &&
-                LineOnLineCCW(aStart, aEnd, bStart) != LineOnLineCCW(aStart, aEnd, bEnd);
-        }
-        private static bool LineOnLineCCW(FkVector2 a, FkVector2 b, FkVector2 c){
-            return (c.Y - a.Y) * (b.X - a.X) > (b.Y - a.Y) * (c.X - a.X);
         }
 
         //========================================================================================================================render functionality (for RAL)
