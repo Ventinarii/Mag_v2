@@ -319,7 +319,8 @@ namespace Mag.Physics.Primitives
         }
 
         /// <summary>
-        /// 
+        /// v1) since this and Raycast agaist AABB is one and the same this method rotates raycast to make use of written code. afterwards all vectors are re rotated
+        /// v2) local solution
         /// </summary>
         /// <param name="orgin"></param>
         /// <param name="direction"></param>
@@ -329,9 +330,21 @@ namespace Mag.Physics.Primitives
         {
             if (!this.IsBox)
                 throw new InvalidOperationException("this is circle, not box");
-            var fail = new C4<FkVector2, FkVector2, double, bool>(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
 
-            throw new NotImplementedException();
+            var mat = new FkMatrix2(-this.Rotation);
+
+            orgin =
+                mat.Rotate(
+                    orgin.Subtract(this.Position)
+                ).Add(Position);
+            var result = RayCastAABB(orgin, direction);
+
+            result.a = mat.UnRotate(
+                    result.a.Subtract(this.Position)
+                ).Add(Position);
+            result.b = mat.UnRotate(result.b);
+
+            return result;
         }
 
         //========================================================================================================================shared functionality
@@ -497,14 +510,22 @@ namespace Mag.Physics.Primitives
         /// </summary>
         /// <param name="orgin"></param>
         /// <param name="direction"></param>
-        /// <returns>point of hit; normal of hit; t; hit?</returns>
-        public C4<FkVector2, FkVector2, double, bool> RayCastAABB(FkVector2 orgin, FkVector2 direction)
+        /// <param name="skipRotation">DO -=NOT=- USE THIS PARAM. it is for internal call only</param>
+        /// <returns></returns>
+        public C4<FkVector2, FkVector2, double, bool> RayCastAABB(FkVector2 orgin, FkVector2 direction, bool skipRotation = false)
         {
             var fail = new C4<FkVector2, FkVector2, double, bool>(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
             orgin = orgin.Subtract(this.Position);
             direction = direction.Normalize();
 
-            var minMax = getMinMaxRelative();
+
+            C2<FkVector2, FkVector2> minMax;
+            if (skipRotation)
+                minMax = new C2<FkVector2, FkVector2>(this.Scale.Multiply(-1), this.Scale);
+            else
+                minMax = getMinMaxRelative();
+
+
             var vert = BoxGetVerticesRelative();
 
             var unitVector = direction;
