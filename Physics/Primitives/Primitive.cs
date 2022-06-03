@@ -239,6 +239,7 @@ namespace Mag.Physics.Primitives
                 corners[i] = corners[i].Add(this.Position);
             return corners;
         }
+
         //========================================
 
         /// <summary>
@@ -383,6 +384,25 @@ namespace Mag.Physics.Primitives
             var normal = new FkVector2(origin).Subtract(point);
             normal = normal.Normalize();
             return new C4<FkVector2, FkVector2, double, bool>(point, normal, t, true);
+        }
+
+        public static bool BoxVsBox(Primitive boxA, Primitive boxB) { 
+            if(!boxA.IsBox || !boxB.IsBox)
+                throw new InvalidOperationException("box is circle");
+
+            var vertA = boxA.BoxGetVerticesRotated();
+            var vertB = boxB.BoxGetVerticesRotated();
+
+            return
+                boxA.PointInBox(vertB[0]) ||
+                boxA.PointInBox(vertB[1]) ||
+                boxA.PointInBox(vertB[2]) ||
+                boxA.PointInBox(vertB[3]) ||
+
+                boxB.PointInBox(vertA[0]) ||
+                boxB.PointInBox(vertA[1]) ||
+                boxB.PointInBox(vertA[2]) ||
+                boxB.PointInBox(vertA[3]);
         }
 
         //========================================================================================================================shared functionality
@@ -621,6 +641,7 @@ namespace Mag.Physics.Primitives
         {
             return (c.Y - a.Y) * (b.X - a.X) > (b.Y - a.Y) * (c.X - a.X);
         }
+
         //========================================================================================================================render functionality (for RAL)
 
     }
