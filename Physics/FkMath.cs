@@ -68,5 +68,10 @@ namespace Mag.Physics
             radians *= Math.PI / 180;//add PI end result =>  ( (360+ (rotationDeg%360) )%360 )*(2*Math.PI/360); // but cheaper (avoided another '%')
             return radians;
         }
+
+        public static double Pow2 (double a)
+        {
+            return a * a;
+        }
     }
 }

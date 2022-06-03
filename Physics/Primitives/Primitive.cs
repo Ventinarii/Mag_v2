@@ -151,6 +151,36 @@ namespace Mag.Physics.Primitives
             return new C4<FkVector2, FkVector2, double, bool>(pointOfHitOff, normalOfHit, t, true);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        public bool CrircleVsCircle(Primitive other) {
+            return this.Position.Subtract(other.Position).LengthSquared() < FkMath.Pow2(this.Scale.X + other.Scale.X);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        public bool CircleVsBox(Primitive other) {
+            var box = this;
+            var circle = this;
+            if(this.IsBox)
+                circle = other;
+            else
+                box = other;
+
+            var vert = box.BoxGetVerticesRelativeRotated();
+            return
+                circle.LineInCircle(vert[0], vert[1]) ||
+                circle.LineInCircle(vert[1], vert[2]) ||
+                circle.LineInCircle(vert[2], vert[3]) ||
+                circle.LineInCircle(vert[4], vert[0]);
+        }
+
         //========================================================================================================================box functionality
 
         /// <summary>
@@ -261,61 +291,13 @@ namespace Mag.Physics.Primitives
         {
             if (!this.IsBox)
                 throw new InvalidOperationException("this is circle, not box");
-
-            var matrix = new FkMatrix2(-this.Rotation);
-
-            lineStart = matrix.Rotate(lineStart.Subtract(this.Position));
-            lineEnd = matrix.Rotate(lineEnd.Subtract(this.Position));
-
-            if (FkMath.InRange(-Scale.X - 0.01, lineStart.X, Scale.X + 0.01) &&
-                FkMath.InRange(-Scale.Y - 0.01, lineStart.Y, Scale.Y + 0.01))
-                return true;
-            if (FkMath.InRange(-Scale.X - 0.01, lineEnd.X, Scale.X + 0.01) &&
-                FkMath.InRange(-Scale.Y - 0.01, lineEnd.Y, Scale.Y + 0.01))
-                return true;
-
-            var vert = BoxGetVertices();
-
-            //=====chk for sneaky #1
-            if(PointOnLine(lineStart, lineEnd, vert[0]) ||//check for sneaky colinear colision (case B in unit test)
-               PointOnLine(lineStart, lineEnd, vert[1]) ||
-               PointOnLine(lineStart, lineEnd, vert[2]) ||
-               PointOnLine(lineStart, lineEnd, vert[3]))
-                return true;
-
-            //====================================================================================ttrl#7>>
-
-            var unitVector = lineEnd.Subtract(lineStart);
-            var unitVectorLength = unitVector.Length();
-            if (unitVectorLength == 0)
-                return true;
-            unitVector = unitVector.Multiply(1/ unitVectorLength);
-
-            unitVector = new FkVector2(
-                (unitVector.X != 0) ? (1 / unitVector.X) : (0),
-                (unitVector.Y != 0) ? (1 / unitVector.Y) : (0));
-
-            var min = Scale.Multiply(-1);
-            min = min.Subtract(lineStart).Multiply(unitVector);
-            var max = Scale;
-            max = max.Subtract(lineStart).Multiply(unitVector);
-
-            var tmin = Math.Max(Math.Min(min.X, max.X), Math.Min(min.Y, max.Y));
-            var tmax = Math.Min(Math.Max(min.X, max.X), Math.Max(min.Y, max.Y));
-            if (tmax < 0 || tmin > tmax)
-                return false;
-
-            var t = (tmin < 0) ? tmax : tmin;
-            return t > 0 && t * t < lineEnd.Subtract(lineStart).LengthSquared();
-
-            //====================================================================================org##>>
-            /* too expensive 
+            var vert = BoxGetVerticesRelativeRotated();
             return
+                PointInBox(lineStart) || PointInBox(lineEnd) ||
                 LineOnLine(lineStart, lineEnd, vert[0], vert[1]) ||
                 LineOnLine(lineStart, lineEnd, vert[1], vert[2]) ||
                 LineOnLine(lineStart, lineEnd, vert[2], vert[3]) ||
                 LineOnLine(lineStart, lineEnd, vert[3], vert[0]);
-            */
         }
 
         /// <summary>
@@ -420,6 +402,8 @@ namespace Mag.Physics.Primitives
         }
 
         /// <summary>
+        /// effectivly: left bottom corner of AABB and top right corner of AABB.
+        /// 
         /// -returns left bottom most corner of square containing this object uses:
         /// --this.BoxGetVerticesRelativeRotated()) if is a box
         /// --this.Scale, this.Scale.Multiply(-1) if circle
@@ -461,9 +445,7 @@ namespace Mag.Physics.Primitives
         /// <returns></returns>
         public bool AABBcolision(FkVector2 other) {
             other = this.Position.Subtract(other);
-
             var mx0 = getMinMaxRelative();
-
             return
                 FkMath.InRange(mx0.a.X, other.X, mx0.b.X) &&
                 FkMath.InRange(mx0.a.Y, other.Y, mx0.b.Y);
@@ -481,32 +463,16 @@ namespace Mag.Physics.Primitives
         /// <returns></returns>
         public bool AABBcolision(FkVector2 lineStart, FkVector2 lineEnd)
         {
-            if (AABBcolision(lineStart) || AABBcolision(lineEnd))
-            {
-                return true;
-            }
+            var minMax = getMinMax();
+            var swap = new FkVector2(minMax.b.X, -minMax.b.Y);
+            FkVector2[] vert = { minMax.b, swap, minMax.a, swap.Multiply(-1) };
 
-            var unitVector = lineEnd.Subtract(lineStart);
-            if (unitVector.LengthSquared() == 0)
-                return false;
-            unitVector = unitVector.Normalize();
-            unitVector = new FkVector2((unitVector.X != 0) ? 1 / unitVector.X : 0,
-                                       (unitVector.Y != 0) ? 1/ unitVector.Y : 0);
-            var minMax = getMinMaxRelative();
-            FkVector2 min = minMax.a;
-            min = min.Subtract(lineStart).Multiply(unitVector);
-            FkVector2 max = minMax.b;
-            max = max.Subtract(lineStart).Multiply(unitVector);
-
-            var tmin = Math.Max(Math.Min(min.X, max.X), Math.Min(min.Y, max.Y));
-            var tmax = Math.Min(Math.Max(min.X, max.X), Math.Max(min.Y, max.Y));
-            if (tmax < 0 || tmin > tmax)
-            {
-                return false;
-            }
-
-            var t = (tmin < 0) ? tmax : tmin;
-            return t > 0 && t * t < lineEnd.Subtract(lineStart).LengthSquared();
+            return
+                AABBcolision(lineStart) || AABBcolision(lineEnd) ||
+                LineOnLine(lineStart, lineEnd, vert[0], vert[1]) ||
+                LineOnLine(lineStart, lineEnd, vert[1], vert[2]) ||
+                LineOnLine(lineStart, lineEnd, vert[2], vert[3]) ||
+                LineOnLine(lineStart, lineEnd, vert[3], vert[0]);
         }
 
         /// <summary>
@@ -603,6 +569,35 @@ namespace Mag.Physics.Primitives
             return lineEnd.EqualWIthError(point) && (pointLength <= (lineLength + 0.01));
         }
 
+        /// <summary>
+        /// checks if 2 lines colide
+        /// https://stackoverflow.com/questions/3838329/how-can-i-check-if-two-segments-intersect
+        /// 
+        /// will return TRUE IF:
+        /// -lines intersect
+        /// -one line end in on another LINE
+        /// 
+        /// will return FALSE IF:
+        /// -one line ending touches another line ending
+        /// -lines DO NOT intersect
+        /// 
+        /// warry: colinear solution.
+        /// </summary>
+        /// <param name="aStart"></param>
+        /// <param name="aEnd"></param>
+        /// <param name="bStart"></param>
+        /// <param name="bEnd"></param>
+        /// <returns></returns>
+        public static bool LineOnLine(FkVector2 aStart, FkVector2 aEnd, FkVector2 bStart, FkVector2 bEnd)
+        {
+            return
+                LineOnLineCCW(aStart, bStart, bEnd) != LineOnLineCCW(aEnd, bStart, bEnd) &&
+                LineOnLineCCW(aStart, aEnd, bStart) != LineOnLineCCW(aStart, aEnd, bEnd);
+        }
+        private static bool LineOnLineCCW(FkVector2 a, FkVector2 b, FkVector2 c)
+        {
+            return (c.Y - a.Y) * (b.X - a.X) > (b.Y - a.Y) * (c.X - a.X);
+        }
         //========================================================================================================================render functionality (for RAL)
 
     }
