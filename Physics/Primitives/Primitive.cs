@@ -116,17 +116,17 @@ namespace Mag.Physics.Primitives
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="orgin"></param>
+        /// <param name="origin"></param>
         /// <param name="direction"></param>
         /// <returns>point of hit; normal of hit; t; hit?</returns>
-        public C4<FkVector2, FkVector2, double, bool> RayCastCircle(FkVector2 orgin, FkVector2 direction) {
-            orgin = orgin.Subtract(this.Position);//<< relative computing
+        public C4<FkVector2, FkVector2, double, bool> RayCastCircle(FkVector2 origin, FkVector2 direction) {
+            origin = origin.Subtract(this.Position);//<< relative computing
             var fail = new C4<FkVector2, FkVector2, double, bool>(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
             if (direction.LengthSquared() < 0.01) return fail;//<< drop if NaN
             direction = direction.Normalize();
 
             //var orginToCircle = this.Position.Subtract(orgin);
-            var orginToCircle = orgin.Multiply(-1);//<< relative computing
+            var orginToCircle = origin.Multiply(-1);//<< relative computing
             var radius2 = Scale.X * Scale.X;
             var orginToCircle2 = orginToCircle.LengthSquared();
 
@@ -144,7 +144,7 @@ namespace Mag.Physics.Primitives
             if (t < 0) return fail;//<< drop if imaginary
 
             //var pointOfHit = orgin.Add(direction.Multiply(t));
-            var pointOfHit = orgin.Add(direction.Multiply(t));//<< relative computing
+            var pointOfHit = origin.Add(direction.Multiply(t));//<< relative computing
             //var normalOfHit = pointOfHit.Subtract(this.Position).Normalize();
             var normalOfHit = pointOfHit.Multiply(-1).Normalize();//<< relative computing
             var pointOfHitOff = pointOfHit.Add(this.Position);//<< relative computing
@@ -321,19 +321,63 @@ namespace Mag.Physics.Primitives
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="orgin"></param>
+        /// <param name="origin"></param>
         /// <param name="direction"></param>
         /// <returns>point of hit; normal of hit; t; hit?</returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public C4<FkVector2, FkVector2, double, bool> RayCastBox(FkVector2 orgin, FkVector2 direction)
+        public C4<FkVector2, FkVector2, double, bool> RayCastBox(FkVector2 origin, FkVector2 direction)
         {
             if (!this.IsBox)
                 throw new InvalidOperationException("this is circle, not box");
             var fail = new C4<FkVector2, FkVector2, double, bool>(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
+            var mat = new FkMatrix2(Rotation);
+            if (direction.LengthSquared() == 0)
+                return fail;
+            direction = direction.Normalize();
 
+            var xAxis = new FkVector2(1, 0);
+            var yAxis = new FkVector2(0, 1);
+            xAxis = mat.UnRotate(xAxis);
+            yAxis = mat.UnRotate(yAxis);
 
+            var p = this.Position.Subtract(origin);
+            var f = new FkVector2(xAxis.DotProdcut(direction), yAxis.DotProdcut(direction));
 
-            return null;//new C4<FkVector2, FkVector2, double, bool>(pointOfHitOff, normalOfHit, t, true);
+            var e = new FkVector2(xAxis.DotProdcut(p), yAxis.DotProdcut(p));
+
+            double[] arr = { 0, 0, 0, 0 };
+            for (int i = 0; i < 2; i++)
+            {
+                var fi = (i == 0) ? (f.X) : (f.Y);
+                var ei = (i == 0) ? (e.X) : (e.Y);
+                var sizeI = (i == 0) ? (Scale.X) : (Scale.Y);
+                if (FkMath.EqualWIthError(fi, 0))
+                {
+                    if (-ei - sizeI > 0 || -ei + sizeI < 0)
+                    {
+                        return fail;
+                    }
+                    if (i == 0)
+                        f = new FkVector2(0.00001, f.Y);
+                    else
+                        f = new FkVector2(f.X, 0.00001);
+                }
+                arr[i * 2 + 0] = (ei + sizeI) / fi;
+                arr[i * 2 + 1] = (ei - sizeI) / fi;
+            }
+
+            var tmin = Math.Max(Math.Min(arr[0], arr[1]), Math.Min(arr[2], arr[3]));
+            var tmax = Math.Min(Math.Max(arr[0], arr[1]), Math.Max(arr[2], arr[3]));
+
+            var t = (tmin < 0f) ? tmax : tmin;
+
+            if (t<0)
+                return fail;
+
+            var point = new FkVector2(origin).Add(new FkVector2(direction).Multiply(t));
+            var normal = new FkVector2(origin).Subtract(point);
+            normal = normal.Normalize();
+            return new C4<FkVector2, FkVector2, double, bool>(point, normal, t, true);
         }
 
         //========================================================================================================================shared functionality
