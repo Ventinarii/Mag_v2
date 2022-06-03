@@ -437,113 +437,72 @@ namespace Mag.Physics.Primitives
         /// <returns></returns>
         public bool AABBcolision(FkVector2 lineStart, FkVector2 lineEnd)
         {
-            lineStart = lineStart.Subtract(this.Position);
-            lineEnd = lineEnd.Subtract(this.Position);
-
-            if (lineStart.X == lineEnd.X)
-                lineEnd = new FkVector2(lineEnd.X + 0.0001, lineEnd.Y);
-            if (lineStart.Y == lineEnd.Y)
-                lineEnd = new FkVector2(lineEnd.X, lineEnd.Y + 0.0001);
-
-            var minMax = getMinMaxRelative();
-
-            if (FkMath.InRange(minMax.a.X - 0.01, lineStart.X, minMax.b.X + 0.01) &&
-                FkMath.InRange(minMax.a.Y - 0.01, lineStart.Y, minMax.b.Y + 0.01))
+            if (AABBcolision(lineStart) || AABBcolision(lineEnd))
+            {
                 return true;
-            if (FkMath.InRange(-minMax.a.X - 0.01, lineEnd.X, minMax.b.X + 0.01) &&
-                FkMath.InRange(-minMax.a.Y - 0.01, lineEnd.Y, minMax.b.Y + 0.01))
-                return true;
-
-            var swap = new FkVector2(minMax.b.X, -minMax.b.Y);
-
-            //=====chk for sneaky #1
-            if (PointOnLine(lineStart, lineEnd, minMax.b) ||//check for sneaky colinear colision (case B in unit test)
-                PointOnLine(lineStart, lineEnd, swap) ||
-                PointOnLine(lineStart, lineEnd, minMax.a) ||
-                PointOnLine(lineStart, lineEnd, swap.Multiply(-1)))
-                return true;
-
-            //====================================================================================ttrl#7>>
+            }
 
             var unitVector = lineEnd.Subtract(lineStart);
-            var unitVectorLength = unitVector.LengthSquared();
-            if (unitVectorLength == 0)
-                return true;
+            if (unitVector.LengthSquared() == 0)
+                return false;
             unitVector = unitVector.Normalize();
-
-            unitVector = new FkVector2(
-                (unitVector.X != 0) ? (1 / unitVector.X) : (0),
-                (unitVector.Y != 0) ? (1 / unitVector.Y) : (0));
-
-            var min = minMax.a;
+            unitVector = new FkVector2((unitVector.X != 0) ? 1 / unitVector.X : 0,
+                                       (unitVector.Y != 0) ? 1/ unitVector.Y : 0);
+            var minMax = getMinMaxRelative();
+            FkVector2 min = minMax.a;
             min = min.Subtract(lineStart).Multiply(unitVector);
-            var max = minMax.b;
+            FkVector2 max = minMax.b;
             max = max.Subtract(lineStart).Multiply(unitVector);
 
             var tmin = Math.Max(Math.Min(min.X, max.X), Math.Min(min.Y, max.Y));
             var tmax = Math.Min(Math.Max(min.X, max.X), Math.Max(min.Y, max.Y));
             if (tmax < 0 || tmin > tmax)
+            {
                 return false;
+            }
 
             var t = (tmin < 0) ? tmax : tmin;
             return t > 0 && t * t < lineEnd.Subtract(lineStart).LengthSquared();
-
-            //====================================================================================org##>>
-            /* too expensive 
-            return
-                LineOnLine(lineStart, lineEnd, vert[0], vert[1]) ||
-                LineOnLine(lineStart, lineEnd, vert[1], vert[2]) ||
-                LineOnLine(lineStart, lineEnd, vert[2], vert[3]) ||
-                LineOnLine(lineStart, lineEnd, vert[3], vert[0]);
-            */
         }
 
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="orgin"></param>
+        /// <param name="origin"></param>
         /// <param name="direction"></param>
         /// <param name="skipRotation">DO -=NOT=- USE THIS PARAM. it is for internal call only</param>
         /// <returns></returns>
-        public C4<FkVector2, FkVector2, double, bool> RayCastAABB(FkVector2 orgin, FkVector2 direction)
+        public C4<FkVector2, FkVector2, double, bool> RayCastAABB(FkVector2 origin, FkVector2 direction)
         {
             var fail = new C4<FkVector2, FkVector2, double, bool>(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
-            if (direction.LengthSquared() == 0)
+
+            var unitVector = direction;
+            if (unitVector.LengthSquared() == 0)
                 return fail;
-
+            unitVector = unitVector.Normalize();
+            unitVector = new FkVector2((unitVector.X != 0) ? 1 / unitVector.X : 0,
+                                       (unitVector.Y != 0) ? 1 / unitVector.Y : 0);
             var minMax = getMinMaxRelative();
-
-
-            direction = direction.Normalize();
-
-            FkMatrix2 mat = null;
-
-            direction = new FkVector2(
-                (direction.X != 0) ? (1 / direction.X) : (0),
-                (direction.Y != 0) ? (1 / direction.Y) : (0));
-
-            var min = minMax.a;
-            min = min.Subtract(orgin).Multiply(direction);
-            var max = minMax.b;
-            max = max.Subtract(orgin).Multiply(direction);
+            FkVector2 min = minMax.a;
+            min = min.Subtract(origin).Multiply(unitVector);
+            FkVector2 max = minMax.b;
+            max = max.Subtract(origin).Multiply(unitVector);
 
             var tmin = Math.Max(Math.Min(min.X, max.X), Math.Min(min.Y, max.Y));
             var tmax = Math.Min(Math.Max(min.X, max.X), Math.Max(min.Y, max.Y));
             if (tmax < 0 || tmin > tmax)
+            {
                 return fail;
+            }
 
             var t = (tmin < 0) ? tmax : tmin;
 
             if (t < 0)
                 return fail;
 
-            //var pointOfHit = orgin.Add(direction.Multiply(t));
-            var pointOfHit = orgin.Add(direction.Multiply(t));//<< relative computing
-            //var normalOfHit = pointOfHit.Subtract(this.Position).Normalize();
-            var normalOfHit = pointOfHit.Multiply(-1).Normalize();//<< relative computing
-
-            var pointOfHitOff = pointOfHit.Add(this.Position);//<< relative computing
-            return new C4<FkVector2, FkVector2, double, bool>(pointOfHitOff, normalOfHit, t, true);*/
+            var hitpos = origin.Add(direction.Multiply(t));
+            var noraml = origin.Subtract(hitpos);
+            return new C4<FkVector2, FkVector2, double, bool>(hitpos, noraml, t, true);
         }
 
         public double GetInertiaTensor(double mass) {
