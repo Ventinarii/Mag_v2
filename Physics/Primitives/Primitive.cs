@@ -519,34 +519,55 @@ namespace Mag.Physics.Primitives
         public C4<FkVector2, FkVector2, double, bool> RayCastAABB(FkVector2 origin, FkVector2 direction)
         {
             var fail = new C4<FkVector2, FkVector2, double, bool>(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
-
-            var unitVector = direction;
-            if (unitVector.LengthSquared() == 0)
+            var mat = new FkMatrix2(Rotation);
+            if (direction.LengthSquared() == 0)
                 return fail;
-            unitVector = unitVector.Normalize();
-            unitVector = new FkVector2((unitVector.X != 0) ? 1 / unitVector.X : 0,
-                                       (unitVector.Y != 0) ? 1 / unitVector.Y : 0);
-            var minMax = getMinMaxRelative();
-            FkVector2 min = minMax.a;
-            min = min.Subtract(origin).Multiply(unitVector);
-            FkVector2 max = minMax.b;
-            max = max.Subtract(origin).Multiply(unitVector);
+            direction = direction.Normalize();
+            var max = getMinMaxRelative().b;
 
-            var tmin = Math.Max(Math.Min(min.X, max.X), Math.Min(min.Y, max.Y));
-            var tmax = Math.Min(Math.Max(min.X, max.X), Math.Max(min.Y, max.Y));
-            if (tmax < 0 || tmin > tmax)
+            var xAxis = new FkVector2(1, 0);
+            var yAxis = new FkVector2(0, 1);
+            xAxis = mat.UnRotate(xAxis);
+            yAxis = mat.UnRotate(yAxis);
+
+            var p = this.Position.Subtract(origin);
+            var f = new FkVector2(xAxis.DotProdcut(direction), yAxis.DotProdcut(direction));
+
+            var e = new FkVector2(xAxis.DotProdcut(p), yAxis.DotProdcut(p));
+
+            double[] arr = { 0, 0, 0, 0 };
+            for (int i = 0; i < 2; i++)
             {
-                return fail;
+                var fi = (i == 0) ? (f.X) : (f.Y);
+                var ei = (i == 0) ? (e.X) : (e.Y);
+                var sizeI = (i == 0) ? (max.X) : (max.Y);
+                if (FkMath.EqualWIthError(fi, 0))
+                {
+                    if (-ei - sizeI > 0 || -ei + sizeI < 0)
+                    {
+                        return fail;
+                    }
+                    if (i == 0)
+                        f = new FkVector2(0.00001, f.Y);
+                    else
+                        f = new FkVector2(f.X, 0.00001);
+                }
+                arr[i * 2 + 0] = (ei + sizeI) / fi;
+                arr[i * 2 + 1] = (ei - sizeI) / fi;
             }
 
-            var t = (tmin < 0) ? tmax : tmin;
+            var tmin = Math.Max(Math.Min(arr[0], arr[1]), Math.Min(arr[2], arr[3]));
+            var tmax = Math.Min(Math.Max(arr[0], arr[1]), Math.Max(arr[2], arr[3]));
+
+            var t = (tmin < 0f) ? tmax : tmin;
 
             if (t < 0)
                 return fail;
 
-            var hitpos = origin.Add(direction.Multiply(t));
-            var noraml = origin.Subtract(hitpos);
-            return new C4<FkVector2, FkVector2, double, bool>(hitpos, noraml, t, true);
+            var point = new FkVector2(origin).Add(new FkVector2(direction).Multiply(t));
+            var normal = new FkVector2(origin).Subtract(point);
+            normal = normal.Normalize();
+            return new C4<FkVector2, FkVector2, double, bool>(point, normal, t, true);
         }
 
         public double GetInertiaTensor(double mass) {
