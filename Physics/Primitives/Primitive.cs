@@ -119,7 +119,6 @@ namespace Mag.Physics.Primitives
         /// <param name="orgin"></param>
         /// <param name="direction"></param>
         /// <returns>point of hit; normal of hit; t; hit?</returns>
-        /// <exception cref="NotImplementedException"></exception>
         public C4<FkVector2, FkVector2, double, bool> RayCastCircle(FkVector2 orgin, FkVector2 direction) {
             orgin = orgin.Subtract(this.Position);//<< relative computing
             var fail = new C4<FkVector2, FkVector2, double, bool>(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
@@ -324,12 +323,14 @@ namespace Mag.Physics.Primitives
         /// </summary>
         /// <param name="orgin"></param>
         /// <param name="direction"></param>
-        /// <returns></returns>
+        /// <returns>point of hit; normal of hit; t; hit?</returns>
         /// <exception cref="InvalidOperationException"></exception>
         public C4<FkVector2, FkVector2, double, bool> RayCastBox(FkVector2 orgin, FkVector2 direction)
         {
             if (!this.IsBox)
                 throw new InvalidOperationException("this is circle, not box");
+            var fail = new C4<FkVector2, FkVector2, double, bool>(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
+
             throw new NotImplementedException();
         }
 
@@ -447,13 +448,13 @@ namespace Mag.Physics.Primitives
                 FkMath.InRange(-minMax.a.Y - 0.01, lineEnd.Y, minMax.b.Y + 0.01))
                 return true;
 
-            var vert = BoxGetVertices();
+            var swap = new FkVector2(minMax.b.X, -minMax.b.Y);
 
             //=====chk for sneaky #1
-            if (PointOnLine(lineStart, lineEnd, vert[0]) ||//check for sneaky colinear colision (case B in unit test)
-               PointOnLine(lineStart, lineEnd, vert[1]) ||
-               PointOnLine(lineStart, lineEnd, vert[2]) ||
-               PointOnLine(lineStart, lineEnd, vert[3]))
+            if (PointOnLine(lineStart, lineEnd, minMax.b) ||//check for sneaky colinear colision (case B in unit test)
+                PointOnLine(lineStart, lineEnd, swap) ||
+                PointOnLine(lineStart, lineEnd, minMax.a) ||
+                PointOnLine(lineStart, lineEnd, swap.Multiply(-1)))
                 return true;
 
             //====================================================================================ttrl#7>>
@@ -496,23 +497,45 @@ namespace Mag.Physics.Primitives
         /// </summary>
         /// <param name="orgin"></param>
         /// <param name="direction"></param>
-        /// <param name="AABB"></param>
-        /// <returns></returns>
-        public C4<FkVector2, FkVector2, double, bool> RayCastAABB(FkVector2 orgin, FkVector2 direction, bool AABB)
+        /// <returns>point of hit; normal of hit; t; hit?</returns>
+        public C4<FkVector2, FkVector2, double, bool> RayCastAABB(FkVector2 orgin, FkVector2 direction)
         {
-            throw new NotImplementedException();
-        }
+            var fail = new C4<FkVector2, FkVector2, double, bool>(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
+            orgin = orgin.Subtract(this.Position);
+            direction = direction.Normalize();
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="orgin"></param>
-        /// <param name="direction"></param>
-        /// <param name="AABB"></param>
-        /// <returns></returns>
-        private C4<FkVector2, FkVector2, double, bool> RayCastBoxOrthogonal(FkVector2 orgin, FkVector2 direction, bool AABB)
-        {
-            throw new NotImplementedException();
+            var minMax = getMinMaxRelative();
+            var vert = BoxGetVerticesRelative();
+
+            var unitVector = direction;
+            var unitVectorLength = unitVector.Length();
+            if (unitVectorLength == 0)
+                return fail;
+            unitVector = unitVector.Multiply(1 / unitVectorLength);
+
+            unitVector = new FkVector2(
+                (unitVector.X != 0) ? (1 / unitVector.X) : (0),
+                (unitVector.Y != 0) ? (1 / unitVector.Y) : (0));
+
+            var min = minMax.a;
+            min = min.Subtract(orgin).Multiply(unitVector);
+            var max = minMax.b;
+            max = max.Subtract(orgin).Multiply(unitVector);
+
+            var tmin = Math.Max(Math.Min(min.X, max.X), Math.Min(min.Y, max.Y));
+            var tmax = Math.Min(Math.Max(min.X, max.X), Math.Max(min.Y, max.Y));
+            if (tmax < 0 || tmin > tmax)
+                return fail;
+
+            var t = (tmin < 0) ? tmax : tmin;
+            if (t < 0) return fail;
+
+            //var pointOfHit = orgin.Add(direction.Multiply(t));
+            var pointOfHit = orgin.Add(direction.Multiply(t));//<< relative computing
+            //var normalOfHit = pointOfHit.Subtract(this.Position).Normalize();
+            var normalOfHit = pointOfHit.Multiply(-1).Normalize();//<< relative computing
+            var pointOfHitOff = pointOfHit.Add(this.Position);//<< relative computing
+            return new C4<FkVector2, FkVector2, double, bool>(pointOfHitOff, normalOfHit, t, true);
         }
 
         public double GetInertiaTensor(double mass) {
