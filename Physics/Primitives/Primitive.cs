@@ -386,23 +386,24 @@ namespace Mag.Physics.Primitives
             return new C4<FkVector2, FkVector2, double, bool>(point, normal, t, true);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="boxA"></param>
+        /// <param name="boxB"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
         public static bool BoxVsBox(Primitive boxA, Primitive boxB) { 
             if(!boxA.IsBox || !boxB.IsBox)
                 throw new InvalidOperationException("box is circle");
 
-            var vertA = boxA.BoxGetVerticesRotated();
             var vertB = boxB.BoxGetVerticesRotated();
 
             return
-                boxA.PointInBox(vertB[0]) ||
-                boxA.PointInBox(vertB[1]) ||
-                boxA.PointInBox(vertB[2]) ||
-                boxA.PointInBox(vertB[3]) ||
-
-                boxB.PointInBox(vertA[0]) ||
-                boxB.PointInBox(vertA[1]) ||
-                boxB.PointInBox(vertA[2]) ||
-                boxB.PointInBox(vertA[3]);
+                boxA.LineInBox(vertB[0],vertB[1]) ||
+                boxA.LineInBox(vertB[1],vertB[2]) ||
+                boxA.LineInBox(vertB[2],vertB[3]) ||
+                boxA.LineInBox(vertB[3],vertB[0]);
         }
 
         //========================================================================================================================shared functionality
