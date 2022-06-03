@@ -17,7 +17,6 @@ namespace Mag.Physics.Primitives
         public double Angular { get; set; }
         //these variables are responsible for DESCRIPTION of object (what is it, what shape it has, does it move)
         public readonly FkVector2 Scale;//IF IsBox==false then we ONLY use X from vector as circle RADIUS
-        public readonly FkMatrix2 ScaleMatrix;
         public readonly bool IsBox;//in simulation we only got boxes(that can be streched using Scale) and circles
         public readonly bool IsStatic;//is the obect static (used as map boudary or obstacle)
 
@@ -156,8 +155,11 @@ namespace Mag.Physics.Primitives
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
-        public bool CrircleVsCircle(Primitive other) {
-            return this.Position.Subtract(other.Position).LengthSquared() < FkMath.Pow2(this.Scale.X + other.Scale.X);
+        public static bool CrircleVsCircle(Primitive circleA, Primitive circleB) {
+            if (circleA.IsBox || circleB.IsBox)
+                throw new InvalidOperationException("one of these is box");
+
+            return circleA.Position.Subtract(circleB.Position).LengthSquared() <= FkMath.Pow2(circleA.Scale.X + circleB.Scale.X);
         }
 
         /// <summary>
@@ -165,20 +167,41 @@ namespace Mag.Physics.Primitives
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
-        public bool CircleVsBox(Primitive other) {
-            var box = this;
-            var circle = this;
-            if(this.IsBox)
-                circle = other;
-            else
-                box = other;
+        public static bool CircleVsBox(Primitive circle, Primitive box) {
+            if (circle.IsBox || !box.IsBox)
+                throw new InvalidOperationException("miss match");
 
-            var vert = box.BoxGetVerticesRelativeRotated();
+            var vert = box.BoxGetVerticesRotated();
             return
+                box.PointInBox(circle.Position) ||
                 circle.LineInCircle(vert[0], vert[1]) ||
                 circle.LineInCircle(vert[1], vert[2]) ||
                 circle.LineInCircle(vert[2], vert[3]) ||
-                circle.LineInCircle(vert[4], vert[0]);
+                circle.LineInCircle(vert[3], vert[0]);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="circle"></param>
+        /// <param name="AABB"></param>
+        /// <returns></returns>
+        public static bool CircleVsAABB(Primitive circle, Primitive AABB)
+        {
+            if (circle.IsBox)
+                throw new InvalidOperationException("circle is box");
+
+            var minMax = AABB.getMinMaxRelative();
+            var swap = new FkVector2(minMax.b.X, -minMax.b.Y);
+            FkVector2[] vert = { minMax.b, swap, minMax.a, swap.Multiply(-1) };
+            for(int i = 0; i < vert.Length; i++)
+                vert[i] = vert[i].Add(AABB.Position);
+            return
+                AABB.AABBvsPoint(circle.Position) ||
+                circle.LineInCircle(vert[0], vert[1]) ||
+                circle.LineInCircle(vert[1], vert[2]) ||
+                circle.LineInCircle(vert[2], vert[3]) ||
+                circle.LineInCircle(vert[3], vert[0]);
         }
 
         //========================================================================================================================box functionality
@@ -424,7 +447,7 @@ namespace Mag.Physics.Primitives
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
-        public bool AABBcolision(Primitive other) {
+        public bool AABBvsAABB(Primitive other) {
             var delta = this.Position.Subtract(other.Position);
 
             var mx0 = getMinMaxRelative();
@@ -443,7 +466,7 @@ namespace Mag.Physics.Primitives
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
-        public bool AABBcolision(FkVector2 other) {
+        public bool AABBvsPoint(FkVector2 other) {
             other = this.Position.Subtract(other);
             var mx0 = getMinMaxRelative();
             return
@@ -461,14 +484,14 @@ namespace Mag.Physics.Primitives
         /// <param name="lineStart"></param>
         /// <param name="lineEnd"></param>
         /// <returns></returns>
-        public bool AABBcolision(FkVector2 lineStart, FkVector2 lineEnd)
+        public bool AABBvsLine(FkVector2 lineStart, FkVector2 lineEnd)
         {
             var minMax = getMinMax();
             var swap = new FkVector2(minMax.b.X, -minMax.b.Y);
             FkVector2[] vert = { minMax.b, swap, minMax.a, swap.Multiply(-1) };
 
             return
-                AABBcolision(lineStart) || AABBcolision(lineEnd) ||
+                AABBvsPoint(lineStart) || AABBvsPoint(lineEnd) ||
                 LineOnLine(lineStart, lineEnd, vert[0], vert[1]) ||
                 LineOnLine(lineStart, lineEnd, vert[1], vert[2]) ||
                 LineOnLine(lineStart, lineEnd, vert[2], vert[3]) ||
