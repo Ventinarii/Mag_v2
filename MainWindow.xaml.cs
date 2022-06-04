@@ -63,8 +63,18 @@ namespace Mag
                IsStatic: false);
             FkPhysicsEngine.primitives.Add(A);
 
-            FkPhysicsEngine.generatores.Add(new FkGravity());
-            //FkPhysicsEngine.generatores.Add(new FkGravityRotation());
+            A = new Primitive(
+               Position: new FkVector2(500, 500),
+               Rotation: 0,
+               Velocity: new FkVector2(0, 0),
+               Angular: -1000,
+               Scale: new FkVector2(25, 0),
+               IsBox: false,
+               IsStatic: false);
+            FkPhysicsEngine.primitives.Add(A);
+
+            //FkPhysicsEngine.generatores.Add(new FkGravity());
+            FkPhysicsEngine.generatores.Add(new FkGravityRotation());
             FkPhysicsEngine.generatores.Add(new FkFriction());
 
             clock.Start();

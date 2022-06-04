@@ -15,9 +15,11 @@ namespace Mag.Physics
         /// >>==>>this is representation of data table in database engine<<==<<
         /// </summary>
         public static readonly List<FkForceGenerator> generatores = new List<FkForceGenerator>();
+
+        //define physics constants
         public static readonly FkVector2 G1 = new FkVector2(0d, -100d);
         public static readonly double frictionFractionLinear = -1;
-        public static readonly double frictionFractionAngular = -10;
+        public static readonly double frictionFractionAngular = -1;
         public static readonly double dt = (1d / 30d);
 
         //========================================================================================================================
