@@ -17,11 +17,9 @@ namespace Mag.Physics.Primitives
         public FkVector2 Velocity { get; set; }
         public double Angular { get; set; }
 
-        public FkVector2 VelocityFriction { get; set; }
-        public double AngularFriction { get; set; }
-
-        public FkVector2 forceResult { get; set; }
         //============================================== mass mess
+        public FkVector2 forceResult = new FkVector2(0, 0);
+        public double AngularForceResult = 0;
         public double Mass {
             get { return massTh; }
             set {
@@ -32,11 +30,10 @@ namespace Mag.Physics.Primitives
         private double massTh = 10;
         public double InvertedMass {
             get { return invertedMassTh; } }
-        private double invertedMassTh = 1 / 10;
+        private double invertedMassTh = 1d / 10d;
         //==============================================
 
-        public void Update(double dt)
-        {
+        public void Update(double dt) {
             if (massTh == 0 || IsStatic)
                 return;
 
@@ -50,9 +47,13 @@ namespace Mag.Physics.Primitives
 
             Position = Position.Add(Velocity.Multiply(dt));//change POSITION by VELOCITY * DeltaTIme
 
+            Angular += AngularForceResult * invertedMassTh * dt;
+            Rotation += Angular * dt;
+
             // <<??== write here custom transform on demand
 
             forceResult = new FkVector2(0, 0);
+            AngularForceResult = 0;
         }
 
         //these variables are responsible for DESCRIPTION of object (what is it, what shape it has, does it move)
@@ -693,6 +694,29 @@ namespace Mag.Physics.Primitives
         }
 
         //========================================================================================================================render functionality (for RAL)
+
+        public FkVector2[] RALgetRenderVerts() { 
+            if(IsBox)
+                return BoxGetVerticesRotated();
+
+            var rotated = new FkMatrix2(-45).Rotate(new FkVector2(Scale.X, 0));
+
+            FkVector2[] arr = new FkVector2[8];
+            arr[0] = new FkVector2(Scale.X, 0);//tight
+            arr[1] = rotated;
+            arr[2] = new FkVector2(0, Scale.X);//top
+            arr[3] = new FkVector2(-rotated.X, rotated.Y);
+            arr[4] = arr[0].Multiply(-1);//left
+            arr[5] = arr[1].Multiply(-1);
+            arr[6] = arr[2].Multiply(-1);//bottom
+            arr[7] = arr[3].Multiply(-1);
+
+            var mat = new FkMatrix2(this.Rotation);
+
+            for (int i = 0; i < arr.Length; i++)
+                arr[i] = mat.Rotate(arr[i]).Add(this.Position);
+            return arr;
+        }
 
     }
 }

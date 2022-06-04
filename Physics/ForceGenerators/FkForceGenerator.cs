@@ -49,8 +49,10 @@ namespace Mag.Physics.ForceGenerators
     {
         void FkForceGenerator.UpdateForce(Primitive ob, int frame)
         {
-            ob.forceResult = ob.Velocity.Multiply(FkPhysicsEngine.frictionFractionLinear);
-            ob.AngularFriction = ob.Angular * FkPhysicsEngine.frictionFractionLinear;
+            ob.forceResult = ob.forceResult.Add(
+                ob.Velocity.Multiply(FkPhysicsEngine.frictionFractionLinear)
+                );
+            ob.AngularForceResult += ob.Angular * FkPhysicsEngine.frictionFractionAngular;
         }
     }    
 }

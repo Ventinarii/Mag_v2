@@ -15,10 +15,10 @@ namespace Mag.Physics
         /// >>==>>this is representation of data table in database engine<<==<<
         /// </summary>
         public static readonly List<FkForceGenerator> generatores = new List<FkForceGenerator>();
-        public static readonly FkVector2 G1 = new FkVector2(0, -100);
+        public static readonly FkVector2 G1 = new FkVector2(0d, -100d);
         public static readonly double frictionFractionLinear = -1;
-        public static readonly double frictionFractionAngular = -1;
-        public static readonly double dt = 1 / 30;
+        public static readonly double frictionFractionAngular = -10;
+        public static readonly double dt = (1d / 30d);
 
         //========================================================================================================================
 
@@ -31,13 +31,10 @@ namespace Mag.Physics
 
         public static void Update() {
             //todo add iterative colision resolution linear loop 
-
-            primitives.AsParallel().ForAll(ob => {
+            primitives.ForEach(ob => {
                 generatores.ForEach(generator => generator.UpdateForce(ob, frame));
                 ob.Update(dt);
             });
-
-
             frame++;
         }
     }
