@@ -13,15 +13,53 @@ namespace Mag.Physics.Primitives
         public double Rotation { get; set; }
         //these variables are responsible for storing MOVMENT of object in between THIS frame and NEXT frame
         //(i.e after update they sould be already up to date)
+
         public FkVector2 Velocity { get; set; }
         public double Angular { get; set; }
-        //these variables are responsible for DESCRIPTION of object (what is it, what shape it has, does it move)
-        public readonly FkVector2 Scale;//IF IsBox==false then we ONLY use X from vector as circle RADIUS
-        public readonly bool IsBox;//in simulation we only got boxes(that can be streched using Scale) and circles
-        public readonly bool IsStatic;//is the obect static (used as map boudary or obstacle)
 
         public FkVector2 VelocityFriction { get; set; }
         public double AngularFriction { get; set; }
+
+        public FkVector2 forceResult { get; set; }
+        //============================================== mass mess
+        public double Mass {
+            get { return massTh; }
+            set {
+                massTh = value;
+                if (massTh != 0)
+                    invertedMassTh = 1 / massTh;
+            } }
+        private double massTh = 0;
+        public double InvertedMass {
+            get { return invertedMassTh; } }
+        private double invertedMassTh = 0;
+        //==============================================
+
+        public void Update(double dt)
+        {
+            if (massTh == 0 || IsStatic)
+                return;
+
+            //linear vel
+            Velocity =
+                Velocity.Add(
+                    forceResult//get forces
+                    .Multiply(invertedMassTh)//get acceleration (gravity force must be adjust dynamicaly to mass)
+                    .Multiply(dt)//multiply change by time fraction
+                );
+
+            Position = Position.Add(Velocity.Multiply(dt));//change POSITION by VELOCITY * DeltaTIme
+
+            // <<??== write here custom transform on demand
+
+            forceResult = new FkVector2(0, 0);
+        }
+
+        //these variables are responsible for DESCRIPTION of object (what is it, what shape it has, does it move)
+
+        public readonly FkVector2 Scale;//IF IsBox==false then we ONLY use X from vector as circle RADIUS
+        public readonly bool IsBox;//in simulation we only got boxes(that can be streched using Scale) and circles
+        public readonly bool IsStatic;//is the obect static (used as map boudary or obstacle)
 
         /// <summary>
         /// this is single constructor for objects of this class. it can go without any arguments - in such a case it will: 

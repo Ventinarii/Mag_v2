@@ -14,61 +14,43 @@ namespace Mag.Physics.ForceGenerators
         /// 
         /// </summary>
         /// <param name="ob"></param>
-        /// <param name="dt">time in miliseconds (1/1000)</param>
+        /// <param name="dt">fraction of second</param>
         /// <param name="frame"></param>
         public void UpdateForce(Primitive ob, int frame);
     }
-
     public class FkGravity : FkForceGenerator //this generator produces constant gravity
     {
         void FkForceGenerator.UpdateForce(Primitive ob, int frame)
         {
-            ob.Velocity = ob.Velocity.Add(FkGeneratorHolder.G1.Multiply(FkGeneratorHolder.dt/ 1000));
+            ob.forceResult = ob.forceResult.Add(FkPhysicsEngine.G1.Multiply(ob.Mass));
         }
     }
-
     public class FkGravityRotation : FkForceGenerator //this generator rotates fixed angle / frame
     {
         private int frame = -1;
-        private FkVector2 G1local = FkGeneratorHolder.G1;
+        private FkVector2 G1local = FkPhysicsEngine.G1;
         void FkForceGenerator.UpdateForce(Primitive ob, int frame)
         {
             //assume: 30 frames / sec
             //full rotation 1 minute (60 sec)
             //full rotation on frame 1800
             if (this.frame != frame) {
-                double rotationFraction = frame / 1800;
-                double rotationAngle = 360 * rotationFraction;
-                G1local = new FkMatrix2(rotationAngle).Rotate(FkGeneratorHolder.G1);
+                this.frame = frame;//update only when needed
+                double framesASecond = 1/ FkPhysicsEngine.dt;
+                var framesinMinute = framesASecond * 60;//<<<< ADJUST ROTATION SPEED HERE. SET ROTATION TIME IN SECONDS. 
+
+                double rotationAngle = 360 * (frame / framesinMinute);
+                G1local = new FkMatrix2(rotationAngle).Rotate(FkPhysicsEngine.G1);//multiple rotation possible
             }
-            ob.Velocity = ob.Velocity.Add(G1local.Multiply(FkGeneratorHolder.dt / 1000));
+            ob.forceResult = ob.forceResult.Add(G1local.Multiply(ob.Mass));
         }
     }
-
     public class FkFriction : FkForceGenerator //this generator removes exxes energy from system
     {
         void FkForceGenerator.UpdateForce(Primitive ob, int frame)
         {
-            ob.VelocityFriction = ob.Velocity.Multiply(FkGeneratorHolder.frictionFractionLinear*FkGeneratorHolder.dt);
-            ob.AngularFriction = ob.Angular*FkGeneratorHolder.frictionFractionLinear*FkGeneratorHolder.dt;
+            ob.forceResult = ob.Velocity.Multiply(FkPhysicsEngine.frictionFractionLinear);
+            ob.AngularFriction = ob.Angular * FkPhysicsEngine.frictionFractionLinear;
         }
-    }
-
-    /// <summary>
-    /// NOTE: EACH body that IS SIMULATED is pending edit EACH frame by EACH generator in order they were added.
-    /// </summary>
-    public static class FkGeneratorHolder {
-        public static readonly List<FkForceGenerator> generatores = new List<FkForceGenerator>();
-
-        public static void updateForces(List<Primitive> list, int frame) {
-            list.AsParallel().ForAll(ob => {
-                generatores.ForEach(generator => generator.UpdateForce(ob,frame));
-            });
-        }
-
-        public static readonly FkVector2 G1 = new FkVector2(0, -100);
-        public static readonly double frictionFractionLinear = -1;
-        public static readonly double frictionFractionAngular = -1;
-        public static readonly double dt = 1 / 30;
-    }
+    }    
 }

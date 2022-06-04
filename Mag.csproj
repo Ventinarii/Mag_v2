@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <Folder Include="DBI\" />
-    <Folder Include="Physics\RigidBody\" />
   </ItemGroup>
 
 </Project>
