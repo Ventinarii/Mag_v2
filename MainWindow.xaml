@@ -7,6 +7,10 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="1000" Width="1000">
     <Canvas x:Name="MyCanvas">
-
+        <Button Content="GO"/>
+        <Button Content="Actor +" Canvas.Left="62"/>
+        <Button Content="Actor -" Canvas.Left="21"/>
+        <TextBlock Canvas.Left="106" TextWrapping="Wrap" Text="0" Height="20" x:Name="TextBlockActorCount"/>
+        <TextBlock TextWrapping="Wrap" Text="" Canvas.Top="20" Height="400" Width="100" x:Name="Info"/>
     </Canvas>
 </Window>

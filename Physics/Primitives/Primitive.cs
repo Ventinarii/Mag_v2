@@ -29,10 +29,10 @@ namespace Mag.Physics.Primitives
                 if (massTh != 0)
                     invertedMassTh = 1 / massTh;
             } }
-        private double massTh = 0;
+        private double massTh = 10;
         public double InvertedMass {
             get { return invertedMassTh; } }
-        private double invertedMassTh = 0;
+        private double invertedMassTh = 1 / 10;
         //==============================================
 
         public void Update(double dt)
