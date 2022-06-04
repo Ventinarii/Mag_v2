@@ -20,6 +20,9 @@ namespace Mag.Physics.Primitives
         public readonly bool IsBox;//in simulation we only got boxes(that can be streched using Scale) and circles
         public readonly bool IsStatic;//is the obect static (used as map boudary or obstacle)
 
+        private FkVector2 VelocityFriction { get; set; }
+        private double AngularFriction { get; set; }
+
         /// <summary>
         /// this is single constructor for objects of this class. it can go without any arguments - in such a case it will: 
         /// generate Static Circle of radius 1 at X:0 Y:0 R:0 with dX:0 dY:0 dR:0
@@ -387,13 +390,13 @@ namespace Mag.Physics.Primitives
         }
 
         /// <summary>
-        /// 
+        /// //todo: optimize #11
         /// </summary>
         /// <param name="boxA"></param>
         /// <param name="boxB"></param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public static bool BoxVsBox(Primitive boxA, Primitive boxB) { 
+        public static bool BoxVsBox(Primitive boxA, Primitive boxB) {//todo: optimize #11
             if(!boxA.IsBox || !boxB.IsBox)
                 throw new InvalidOperationException("box is circle");
 
