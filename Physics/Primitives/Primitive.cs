@@ -20,8 +20,8 @@ namespace Mag.Physics.Primitives
         public readonly bool IsBox;//in simulation we only got boxes(that can be streched using Scale) and circles
         public readonly bool IsStatic;//is the obect static (used as map boudary or obstacle)
 
-        private FkVector2 VelocityFriction { get; set; }
-        private double AngularFriction { get; set; }
+        public FkVector2 VelocityFriction { get; set; }
+        public double AngularFriction { get; set; }
 
         /// <summary>
         /// this is single constructor for objects of this class. it can go without any arguments - in such a case it will: 
