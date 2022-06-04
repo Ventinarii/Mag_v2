@@ -318,7 +318,7 @@ namespace Mag.Physics.Primitives
         {
             if (!this.IsBox)
                 throw new InvalidOperationException("this is circle, not box");
-            var vert = BoxGetVerticesRelativeRotated();
+            var vert = BoxGetVerticesRotated();
             return
                 PointInBox(lineStart) || PointInBox(lineEnd) ||
                 LineOnLine(lineStart, lineEnd, vert[0], vert[1]) ||
@@ -399,6 +399,14 @@ namespace Mag.Physics.Primitives
         public static bool BoxVsBox(Primitive boxA, Primitive boxB) {//todo: optimize #11
             if(!boxA.IsBox || !boxB.IsBox)
                 throw new InvalidOperationException("box is circle");
+
+            if (boxA.Scale.LengthSquared() < boxB.Scale.LengthSquared()) {
+                //check against situation where one box is inside another. for this thing to work we detect IF box B is INSIDE box A. 
+                //whithout this check situation where box A is inside box B are skipped.
+                var swap = boxA;
+                boxA = boxB;
+                boxB = swap;
+            }
 
             var vertB = boxB.BoxGetVerticesRotated();
 
