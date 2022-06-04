@@ -85,22 +85,6 @@ namespace Mag.Physics
         }
         
         /// <summary>
-        /// DUPLICATE matrix AND it's MODE.
-        /// Copies matrix (since evrything is readonly kind of useless)
-        /// </summary>
-        /// <param name="copyOF">matrix to copy</param>
-        public FkMatrix2(FkMatrix2 copyOF)
-        {
-            this.d00 = copyOF.d00;
-            this.d01 = copyOF.d01;
-            this.d10 = copyOF.d10;
-            this.d11 = copyOF.d11;
-            this.RotationDeg = copyOF.RotationDeg;
-            this.StrechValue = copyOF.StrechValue;
-            this.UsedAs = copyOF.UsedAs;
-        }
-        
-        /// <summary>
         /// private constructor without ANY constrains. use with care.
         /// </summary>
         /// <param name="d00">left top</param>

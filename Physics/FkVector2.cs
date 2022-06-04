@@ -25,15 +25,6 @@ namespace Mag.Physics
         }
         
         /// <summary>
-        /// duplicating constructor
-        /// </summary>
-        /// <param name="v"></param>
-        public FkVector2(FkVector2 v) { 
-            X=v.X;
-            Y=v.Y;
-        }
-        
-        /// <summary>
         /// Add 2 vectors X+x & Y+y
         /// </summary>
         /// <param name="v"></param>
@@ -70,29 +61,11 @@ namespace Mag.Physics
         }
 
         /// <summary>
-        /// Multiply this Vector component-wise by another Vector
-        /// </summary>
-        /// <param name="a"></param>
-        /// <returns></returns>
-        public FkVector2 Multiply(FkVector2 a) { 
-            return new FkVector2 (X * a.X, Y * a.Y);
-        }
-
-        /// <summary>
         /// return direction vector of length 1
         /// </summary>
         /// <returns></returns>
         public FkVector2 Normalize() {
             return this.Multiply(1 / this.Length());
-        }
-
-        /// <summary>
-        /// check if 2 vectors are THE SAME (vunrable to numeric instability)
-        /// </summary>
-        /// <param name="other"></param>
-        /// <returns></returns>
-        public bool EqualsStrict(FkVector2 other){
-             return X == other.X && Y == other.Y;
         }
 
         /// <summary>

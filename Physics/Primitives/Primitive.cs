@@ -383,8 +383,8 @@ namespace Mag.Physics.Primitives
             if (t<0)
                 return fail;
 
-            var point = new FkVector2(origin).Add(new FkVector2(direction).Multiply(t));
-            var normal = new FkVector2(origin).Subtract(point);
+            var point = origin.Add(direction.Multiply(t));
+            var normal = origin.Subtract(point);
             normal = normal.Normalize();
             return new C4<FkVector2, FkVector2, double, bool>(point, normal, t, true);
         }
@@ -577,8 +577,8 @@ namespace Mag.Physics.Primitives
             if (t < 0)
                 return fail;
 
-            var point = new FkVector2(origin).Add(new FkVector2(direction).Multiply(t));
-            var normal = new FkVector2(origin).Subtract(point);
+            var point = origin.Add(direction.Multiply(t));
+            var normal = origin.Subtract(point);
             normal = normal.Normalize();
             return new C4<FkVector2, FkVector2, double, bool>(point, normal, t, true);
         }
