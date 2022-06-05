@@ -19,6 +19,10 @@ using System.Windows.Threading;
 
 namespace Mag
 {
+    //Disclaimer: Fk prefix stands for ForeinKey from databases and is running joke in my code.
+    //it is used to indicate that given code and / or function are forein to given location / environment.
+    //by intention it is NOT asociated with ANY more than that.
+
     /// <summary>
     /// This class holds code for rendering and basic calls for rest of code
     /// </summary>
@@ -33,50 +37,110 @@ namespace Mag
             clock.Interval = TimeSpan.FromMilliseconds(FkPhysicsEngine.dt * 1000);
             clock.Tick += RenderFrame;
 
-            var A = new Primitive(
-               Position: new FkVector2(50, 400),
-               Rotation: 0,
-               Velocity: new FkVector2(100, 200),
-               Angular: 90,
-               Scale: new FkVector2(25, 25),
-               IsBox: true,
-               IsStatic: false);
-            FkPhysicsEngine.primitives.Add(A);
+            //here create content of world
+            Primitive A = null;
+            if (true)
+            { //BORDER
+                A = new Primitive(
+                   Position: new FkVector2(500, 10),
+                   Rotation: 0,
+                   Velocity: new FkVector2(0, 0),
+                   Angular: 0,
+                   Scale: new FkVector2(500, 10),
+                   IsBox: true,
+                   IsStatic: true);
+                FkPhysicsEngine.primitives.Add(A);
+                A = new Primitive(
+                   Position: new FkVector2(500, 990),
+                   Rotation: 0,
+                   Velocity: new FkVector2(0, 0),
+                   Angular: 0,
+                   Scale: new FkVector2(500, 10),
+                   IsBox: true,
+                   IsStatic: true);
+                FkPhysicsEngine.primitives.Add(A);
+                A = new Primitive(
+                   Position: new FkVector2(10, 500),
+                   Rotation: 0,
+                   Velocity: new FkVector2(0, 0),
+                   Angular: 0,
+                   Scale: new FkVector2(10, 480),
+                   IsBox: true,
+                   IsStatic: true);
+                FkPhysicsEngine.primitives.Add(A);
+                A = new Primitive(
+                   Position: new FkVector2(990, 500),
+                   Rotation: 0,
+                   Velocity: new FkVector2(0, 0),
+                   Angular: 0,
+                   Scale: new FkVector2(10, 480),
+                   IsBox: true,
+                   IsStatic: true);
+                FkPhysicsEngine.primitives.Add(A);
+            }
 
-            A = new Primitive(
-               Position: new FkVector2(150, 400),
-               Rotation: 0,
-               Velocity: new FkVector2(100, 300),
-               Angular: 45,
-               Scale: new FkVector2(25, 25),
-               IsBox: true,
-               IsStatic: false);
-            FkPhysicsEngine.primitives.Add(A);
+            if (true)
+            { //constants
+                A = new Primitive(
+                   Position: new FkVector2(150, 400),
+                   Rotation: 0,
+                   Velocity: new FkVector2(100, 300),
+                   Angular: 45,
+                   Scale: new FkVector2(25, 25),
+                   IsBox: true,
+                   IsStatic: true);
+                FkPhysicsEngine.primitives.Add(A);
+                A = new Primitive(
+                   Position: new FkVector2(150, 450),
+                   Rotation: 0,
+                   Velocity: new FkVector2(100, 300),
+                   Angular: 45,
+                   Scale: new FkVector2(25, 25),
+                   IsBox: true,
+                   IsStatic: false)
+                { Mass = 0 };
+                FkPhysicsEngine.primitives.Add(A);
+            }
+            if (true)
+            {//FLY!!
+                A = new Primitive(
+                  Position: new FkVector2(50, 400),
+                  Rotation: 0,
+                  Velocity: new FkVector2(100, 200),
+                  Angular: 90,
+                  Scale: new FkVector2(25, 25),
+                  IsBox: true,
+                  IsStatic: false);
+                FkPhysicsEngine.primitives.Add(A);
+                A = new Primitive(
+                   Position: new FkVector2(250, 400),
+                   Rotation: 0,
+                   Velocity: new FkVector2(600, 400),
+                   Angular: -1000,
+                   Scale: new FkVector2(25, 0),
+                   IsBox: false,
+                   IsStatic: false);
+                FkPhysicsEngine.primitives.Add(A);
+            }
+            if (true) 
+            {//WAIT.
+                A = new Primitive(
+                   Position: new FkVector2(500, 500),
+                   Rotation: 0,
+                   Velocity: new FkVector2(0, 0),
+                   Angular: -1000,
+                   Scale: new FkVector2(25, 0),
+                   IsBox: false,
+                   IsStatic: false);
+                FkPhysicsEngine.primitives.Add(A);
+            }
 
-            A = new Primitive(
-               Position: new FkVector2(250, 400),
-               Rotation: 0,
-               Velocity: new FkVector2(100, 400),
-               Angular: -1000,
-               Scale: new FkVector2(25, 0),
-               IsBox: false,
-               IsStatic: false);
-            FkPhysicsEngine.primitives.Add(A);
-
-            A = new Primitive(
-               Position: new FkVector2(500, 500),
-               Rotation: 0,
-               Velocity: new FkVector2(0, 0),
-               Angular: -1000,
-               Scale: new FkVector2(25, 0),
-               IsBox: false,
-               IsStatic: false);
-            FkPhysicsEngine.primitives.Add(A);
-
-            //FkPhysicsEngine.generatores.Add(new FkGravity());
-            FkPhysicsEngine.generatores.Add(new FkGravityRotation());
+            //here create define generators
+            if (true)FkPhysicsEngine.generatores.Add(new FkGravity());
+            else     FkPhysicsEngine.generatores.Add(new FkGravityRotation());
             FkPhysicsEngine.generatores.Add(new FkFriction());
 
+            //start simualtion
             clock.Start();
         }
 

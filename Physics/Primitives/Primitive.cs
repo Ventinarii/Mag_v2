@@ -32,26 +32,24 @@ namespace Mag.Physics.Primitives
             get { return invertedMassTh; } }
         private double invertedMassTh = 1d / 10d;
         //==============================================
-
         public void Update(double dt) {
-            if (massTh == 0 || IsStatic)
-                return;
+            if (massTh != 0 && !IsStatic)
+            {
+                //linear vel
+                Velocity =
+                    Velocity.Add(
+                        forceResult//get forces
+                        .Multiply(invertedMassTh)//get acceleration (gravity force must be adjust dynamicaly to mass)
+                        .Multiply(dt)//multiply change by time fraction
+                    );
 
-            //linear vel
-            Velocity =
-                Velocity.Add(
-                    forceResult//get forces
-                    .Multiply(invertedMassTh)//get acceleration (gravity force must be adjust dynamicaly to mass)
-                    .Multiply(dt)//multiply change by time fraction
-                );
+                Position = Position.Add(Velocity.Multiply(dt));//change POSITION by VELOCITY * DeltaTIme
 
-            Position = Position.Add(Velocity.Multiply(dt));//change POSITION by VELOCITY * DeltaTIme
+                Angular += AngularForceResult * invertedMassTh * dt;
+                Rotation += Angular * dt;
 
-            Angular += AngularForceResult * invertedMassTh * dt;
-            Rotation += Angular * dt;
-
-            // <<??== write here custom transform on demand
-
+                // <<??== write here custom transform on demand
+            }
             forceResult = new FkVector2(0, 0);
             AngularForceResult = 0;
         }
@@ -160,9 +158,9 @@ namespace Mag.Physics.Primitives
         /// <param name="origin"></param>
         /// <param name="direction"></param>
         /// <returns>point of hit; normal of hit; t; hit?</returns>
-        public C4<FkVector2, FkVector2, double, bool> RayCastCircle(FkVector2 origin, FkVector2 direction) {
+        public RayCastResult RayCastCircle(FkVector2 origin, FkVector2 direction) {
             origin = origin.Subtract(this.Position);//<< relative computing
-            var fail = new C4<FkVector2, FkVector2, double, bool>(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
+            var fail = new RayCastResult(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
             if (direction.LengthSquared() < 0.01) return fail;//<< drop if NaN
             direction = direction.Normalize();
 
@@ -189,7 +187,7 @@ namespace Mag.Physics.Primitives
             //var normalOfHit = pointOfHit.Subtract(this.Position).Normalize();
             var normalOfHit = pointOfHit.Multiply(-1).Normalize();//<< relative computing
             var pointOfHitOff = pointOfHit.Add(this.Position);//<< relative computing
-            return new C4<FkVector2, FkVector2, double, bool>(pointOfHitOff, normalOfHit, t, true);
+            return new RayCastResult(pointOfHitOff, normalOfHit, t, true);
         }
 
         /// <summary>
@@ -373,11 +371,11 @@ namespace Mag.Physics.Primitives
         /// <param name="direction"></param>
         /// <returns>point of hit; normal of hit; t; hit?</returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public C4<FkVector2, FkVector2, double, bool> RayCastBox(FkVector2 origin, FkVector2 direction)
+        public RayCastResult RayCastBox(FkVector2 origin, FkVector2 direction)
         {
             if (!this.IsBox)
                 throw new InvalidOperationException("this is circle, not box");
-            var fail = new C4<FkVector2, FkVector2, double, bool>(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
+            var fail = new RayCastResult(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
             var mat = new FkMatrix2(Rotation);
             if (direction.LengthSquared() == 0)
                 return fail;
@@ -425,7 +423,7 @@ namespace Mag.Physics.Primitives
             var point = origin.Add(direction.Multiply(t));
             var normal = origin.Subtract(point);
             normal = normal.Normalize();
-            return new C4<FkVector2, FkVector2, double, bool>(point, normal, t, true);
+            return new RayCastResult(point, normal, t, true);
         }
 
         /// <summary>
@@ -576,9 +574,9 @@ namespace Mag.Physics.Primitives
         /// <param name="direction"></param>
         /// <param name="skipRotation">DO -=NOT=- USE THIS PARAM. it is for internal call only</param>
         /// <returns></returns>
-        public C4<FkVector2, FkVector2, double, bool> RayCastAABB(FkVector2 origin, FkVector2 direction)
+        public RayCastResult RayCastAABB(FkVector2 origin, FkVector2 direction)
         {
-            var fail = new C4<FkVector2, FkVector2, double, bool>(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
+            var fail = new RayCastResult(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
             var mat = new FkMatrix2(Rotation);
             if (direction.LengthSquared() == 0)
                 return fail;
@@ -627,7 +625,7 @@ namespace Mag.Physics.Primitives
             var point = origin.Add(direction.Multiply(t));
             var normal = origin.Subtract(point);
             normal = normal.Normalize();
-            return new C4<FkVector2, FkVector2, double, bool>(point, normal, t, true);
+            return new RayCastResult(point, normal, t, true);
         }
 
         public double GetInertiaTensor(double mass) {
@@ -719,4 +717,87 @@ namespace Mag.Physics.Primitives
         }
 
     }
+
+    public class RayCastResult {
+        public RayCastResult(FkVector2 PointOfHit, FkVector2 NormalOfHit, double t, bool Hit) { 
+            this.PointOfHit = PointOfHit;
+            this.NormalOfHit = NormalOfHit;
+            this.t = t;
+            this.Hit = Hit;
+        }
+        public readonly FkVector2 PointOfHit;
+        public readonly FkVector2 NormalOfHit;
+        public readonly double t;
+        public readonly bool Hit;
+    }
+
+    public class CollisionResult {
+        public static CollisionResult CircleVsCircle(Primitive circleA, Primitive circleB) {
+            if (circleA.IsBox || circleB.IsBox)
+                throw new InvalidOperationException("Not a circle");
+            if (FkMath.Pow2(circleA.Scale.X+circleB.Scale.X)<circleA.Position.Subtract(circleB.Position).LengthSquared())
+                return new CollisionResult();//if no collision
+            
+            var radiusSum = circleA.Scale.X+circleB.Scale.X;
+
+            var delta = circleB.Position.Subtract(circleA.Position);
+            var deltaLength = delta.Length();
+
+            var depth = radiusSum - deltaLength;
+            depth = depth * 0.5d;
+
+            var normal = delta.Normalize();
+
+            var contact = circleA.Position.Add(normal.Multiply(circleA.Scale.X - depth));
+
+            return new CollisionResult(
+                normal,
+                contact,
+                depth,
+                true
+                );
+        }
+
+        public static CollisionResult CircleVsBox(Primitive circle, Primitive box)
+        {
+            if (circle.IsBox || !box.IsBox)
+                throw new InvalidOperationException("mess");
+
+
+            //write stuff here
+
+            return null;
+        }
+
+        public static CollisionResult BoxVsBox(Primitive boxA, Primitive boxB)
+        {
+            if (!boxA.IsBox || !boxB.IsBox)
+                throw new InvalidOperationException("Not a box");
+
+            //write stuff here
+
+            return null;
+        }
+
+        public CollisionResult(FkVector2 Normal = null, FkVector2 Contact = null, double Depth = -1, bool Hit = false)
+        {
+            this.Normal = Normal.Normalize();
+            this.ContactA = ContactA;
+            this.ContactB = ContactB;
+            this.Depth = Depth;
+            this.Hit=Hit;
+        }
+        public readonly FkVector2 Normal;
+        public readonly FkVector2 Contact;
+        public readonly double Depth;
+        public readonly bool Hit;
+    }
+
+    //impulse: FkVector location; FkVector direction; double force
+
+    public class ColisionResolution { 
+        
+        
+    }
+
 }

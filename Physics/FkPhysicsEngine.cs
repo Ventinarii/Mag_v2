@@ -32,11 +32,30 @@ namespace Mag.Physics
         public static int frame = 0;
 
         public static void Update() {
-            //todo add iterative colision resolution linear loop 
+            //add forces from generators
             primitives.ForEach(ob => {
                 generatores.ForEach(generator => generator.UpdateForce(ob, frame));
+            });
+
+            //add forces from colisions /// it is in this order to create potential for static force ditribution (we run impulses only) 
+            var circles = 
+                from prim in primitives.AsParallel()
+                where !prim.IsBox 
+                select prim;
+
+            var boxes =
+                from prim in primitives.AsParallel()
+                where prim.IsBox
+                select prim;
+
+            var boxesVsCircles = 1;
+
+            //apply forces anc clean
+            primitives.ForEach(ob => {
                 ob.Update(dt);
             });
+
+            //note we finihed frame
             frame++;
         }
     }
