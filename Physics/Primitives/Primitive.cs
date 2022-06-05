@@ -733,11 +733,6 @@ namespace Mag.Physics.Primitives
 
     public class CollisionResult {
         public static CollisionResult CircleVsCircle(Primitive circleA, Primitive circleB) {
-            if (circleA.IsBox || circleB.IsBox)
-                throw new InvalidOperationException("Not a circle");
-            if (FkMath.Pow2(circleA.Scale.X+circleB.Scale.X)<circleA.Position.Subtract(circleB.Position).LengthSquared())
-                return new CollisionResult();//if no collision
-            
             var radiusSum = circleA.Scale.X+circleB.Scale.X;
 
             var delta = circleB.Position.Subtract(circleA.Position);
@@ -760,8 +755,6 @@ namespace Mag.Physics.Primitives
 
         public static CollisionResult CircleVsBox(Primitive circle, Primitive box)
         {
-            if (circle.IsBox || !box.IsBox)
-                throw new InvalidOperationException("mess");
 
 
             //write stuff here
@@ -771,10 +764,6 @@ namespace Mag.Physics.Primitives
 
         public static CollisionResult BoxVsBox(Primitive boxA, Primitive boxB)
         {
-            if (!boxA.IsBox || !boxB.IsBox)
-                throw new InvalidOperationException("Not a box");
-
-            //write stuff here
 
             return null;
         }
@@ -782,8 +771,7 @@ namespace Mag.Physics.Primitives
         public CollisionResult(FkVector2 Normal = null, FkVector2 Contact = null, double Depth = -1, bool Hit = false)
         {
             this.Normal = Normal.Normalize();
-            this.ContactA = ContactA;
-            this.ContactB = ContactB;
+            this.Contact = Contact;
             this.Depth = Depth;
             this.Hit=Hit;
         }
@@ -795,9 +783,40 @@ namespace Mag.Physics.Primitives
 
     //impulse: FkVector location; FkVector direction; double force
 
-    public class ColisionResolution { 
-        
-        
+    public class ColisionResolution {
+        public static void CircleVsCircle(Primitive circleA, Primitive circleB) {
+            if (circleA.IsBox || circleB.IsBox)
+                throw new InvalidOperationException("Not a circle");
+            if (FkMath.Pow2(circleA.Scale.X + circleB.Scale.X) < circleA.Position.Subtract(circleB.Position).LengthSquared())
+                return;
+
+            var man = CollisionResult.CircleVsCircle(circleA, circleB);
+            if (!man.Hit)
+                return;
+
+        }
+
+    public static void CircleVsBox(Primitive circle, Primitive box)
+        {
+            if (circle.IsBox || !box.IsBox)
+                throw new InvalidOperationException("mess");
+
+            var man = CollisionResult.CircleVsBox(circle, box);
+            if (!man.Hit)
+                return;
+
+        }
+
+        public static void BoxVsBox(Primitive boxA, Primitive boxB)
+        {
+            if (!boxA.IsBox || !boxB.IsBox)
+                throw new InvalidOperationException("Not a box");
+
+            var man = CollisionResult.BoxVsBox(boxA, boxB);
+            if (!man.Hit)
+                return;
+
+        }
     }
 
 }

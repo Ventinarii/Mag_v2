@@ -38,17 +38,23 @@ namespace Mag.Physics
             });
 
             //add forces from colisions /// it is in this order to create potential for static force ditribution (we run impulses only) 
-            var circles = 
-                from prim in primitives.AsParallel()
-                where !prim.IsBox 
-                select prim;
+            var circles = primitives.Where(x => !x.IsBox).ToList();
+            var sizeC = circles.Count();
 
-            var boxes =
-                from prim in primitives.AsParallel()
-                where prim.IsBox
-                select prim;
+            var boxes = primitives.Where(x => x.IsBox).ToList();
+            var sizeB = boxes.Count();
 
-            var boxesVsCircles = 1;
+            for (int i = 0; i < sizeC; i++)
+                for (int x = i + 1; x < sizeC; x++)
+                    ColisionResolution.CircleVsCircle(circles[i], circles[x]);
+
+            for (int i = 0; i < sizeB; i++)
+                for (int x = i + 1; x < sizeB; x++)
+                    ColisionResolution.BoxVsBox(boxes[i], boxes[x]);
+
+            for (int i = 0; i < sizeC; i++)
+                for (int x = 0; x < sizeB; x++)
+                    ColisionResolution.CircleVsBox(circles[i], boxes[x]);
 
             //apply forces anc clean
             primitives.ForEach(ob => {
