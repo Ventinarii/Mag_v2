@@ -146,7 +146,7 @@ namespace Mag
 
         public static readonly double thickness = 1;
         public static readonly double canvasHeight = 1000;
-
+        
         void RenderFrame(object? sender, EventArgs e)
         {
             //simulation
@@ -165,6 +165,7 @@ namespace Mag
                 DrawLine(vert[vert.Length - 1].X, vert[vert.Length - 1].Y, vert[0].X, vert[0].Y);
             }
         }
+        //draws line from [sX, sY] to [eX, eY]
         private void DrawLine(double sX, double sY, double eX, double eY) {
             var myLine = new Line();
             myLine.Stroke = System.Windows.Media.Brushes.Black;

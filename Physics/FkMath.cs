@@ -23,8 +23,7 @@ namespace Mag.Physics
                 to2 = from;
             }
             return (val < from2) ? (from2) : ((to2 < val) ? (to2) : (val));
-        }
-        
+        }        
         /// <summary>
         /// this function i s used to check IF val is in between from and to regardless of that is greater
         /// </summary>
@@ -34,33 +33,28 @@ namespace Mag.Physics
         /// <returns>true if value is within constrains</returns>
         public static bool InRange(double from, double val, double to) {
             return (from < to) ? (from <= val && val <= to) : (to <= val && val <= from);
-        }
-        
+        }        
         /// <summary>
         /// absolute value of double d
         /// </summary>
-        /// <param name="d"></param>
         /// <returns>absolute value</returns>
         public static double Abs(double d) {
             return (d < 0) ? (-d) : (d);
         }
-        
         /// <summary>
         /// check if 2 numbers are equal with error margin (numeric instability)
-        /// return (Abs(value1 - value2) <= Abs(error));
         /// </summary>
         /// <param name="value1">value to compare A</param>
-        /// <param name="value2">value to compare A</param>
+        /// <param name="value2">value to compare B</param>
         /// <param name="error">error margin</param>
-        /// <returns></returns>
+        /// <returns>(Abs(value1 - value2) <= Abs(error))</returns>
         public static bool EqualWIthError(double value1, double value2, double error = 0.0001) {
             return Abs(value1 - value2) <= Abs(error);
-        }
-        
+        }        
         /// <summary>
         /// this function is used to convert value in degrees (even multiplication of 360% or negative values)
         /// </summary>
-        /// <param name="angle"></param>
+        /// <param name="angle">angle in degrees</param>
         /// <returns>value in radians</returns>
         public static double DegToRadians(double angle)
         {
@@ -68,7 +62,10 @@ namespace Mag.Physics
             radians *= Math.PI / 180;//add PI end result =>  ( (360+ (rotationDeg%360) )%360 )*(2*Math.PI/360); // but cheaper (avoided another '%')
             return radians;
         }
-
+        /// <summary>
+        /// this is short function to square number
+        /// </summary>
+        /// <returns>squared a</returns>
         public static double Pow2 (double a)
         {
             return a * a;

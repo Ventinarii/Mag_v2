@@ -31,6 +31,9 @@ namespace Mag.Physics.Primitives
         public double InvertedMass {
             get { return invertedMassTh; } }
         private double invertedMassTh = 1d / 10d;
+
+        public double CircleFrictionFactor = 1;
+        public double RestitutionFactor = 0.0d;
         //==============================================
         public void Update(double dt) {
             if (massTh != 0 && !IsStatic)
@@ -59,6 +62,7 @@ namespace Mag.Physics.Primitives
         public readonly FkVector2 Scale;//IF IsBox==false then we ONLY use X from vector as circle RADIUS
         public readonly bool IsBox;//in simulation we only got boxes(that can be streched using Scale) and circles
         public readonly bool IsStatic;//is the obect static (used as map boudary or obstacle)
+        public readonly bool ApplyGenerators = true;//do we skip this objects with generators?
 
         /// <summary>
         /// this is single constructor for objects of this class. it can go without any arguments - in such a case it will: 
@@ -732,6 +736,18 @@ namespace Mag.Physics.Primitives
     }
 
     public class CollisionResult {
+        public CollisionResult(FkVector2 Normal = null, FkVector2 Contact = null, double Depth = -1, bool Hit = false)
+        {
+            this.Normal = Normal.Normalize();
+            this.Contact = Contact;
+            this.Depth = Depth;
+            this.Hit = Hit;
+        }
+        public readonly FkVector2 Normal;
+        public readonly FkVector2 Contact;
+        public readonly double Depth;
+        public readonly bool Hit;
+
         public static CollisionResult CircleVsCircle(Primitive circleA, Primitive circleB) {
             var radiusSum = circleA.Scale.X+circleB.Scale.X;
 
@@ -765,46 +781,126 @@ namespace Mag.Physics.Primitives
         public static CollisionResult BoxVsBox(Primitive boxA, Primitive boxB)
         {
 
+
+
             return null;
         }
-
-        public CollisionResult(FkVector2 Normal = null, FkVector2 Contact = null, double Depth = -1, bool Hit = false)
-        {
-            this.Normal = Normal.Normalize();
-            this.Contact = Contact;
-            this.Depth = Depth;
-            this.Hit=Hit;
-        }
-        public readonly FkVector2 Normal;
-        public readonly FkVector2 Contact;
-        public readonly double Depth;
-        public readonly bool Hit;
     }
 
     //impulse: FkVector location; FkVector direction; double force
 
     public class ColisionResolution {
+
+        //skip angular changes //apply fircion for angular
         public static void CircleVsCircle(Primitive circleA, Primitive circleB) {
             if (circleA.IsBox || circleB.IsBox)
                 throw new InvalidOperationException("Not a circle");
+
+            if (!circleA.AABBvsAABB(circleB))
+                return;//no colision
+
             if (FkMath.Pow2(circleA.Scale.X + circleB.Scale.X) < circleA.Position.Subtract(circleB.Position).LengthSquared())
-                return;
+                return;//no colision
+
+            var bounce = circleA.IsStatic || circleA.Mass == 0 || circleB.IsStatic || circleB.Mass == 0;
+            if (bounce) CircleVsCircleStatic(circleA, circleB);
+            if (bounce) return;//bounce
 
             var man = CollisionResult.CircleVsCircle(circleA, circleB);
             if (!man.Hit)
-                return;
+                return;//no contact
+            //===================================================exchange of impulses>>
 
+            var positionB = circleB.Position.Subtract(circleA.Position);
+            var pointOfReferenceVelocity = circleB.Velocity;//at the end ADD to both velocities.
+            var velocityA = circleA.Velocity.Subtract(circleB.Velocity);
+
+            var velocityANormal = velocityA.Normalize();
+            var impactNormal = man.Normal;
+            //if velocityANormal DOT impactNormal 1 then we thansfer all of out momentum to B.
+            //if velocityANormal DOT impactNormal 0 then we SKIP BY B.
+            //if velocityANormal DOT impactNormal -1 then we return since we have an error
+
+            var RestitutionFactor = circleA.RestitutionFactor + circleB.RestitutionFactor;
+            RestitutionFactor = RestitutionFactor / 2;
+            //bouncyiness of these 2 is AVERAGE. 
+
+            var impactNormalPerpendicular = new FkVector2(impactNormal.X, impactNormal.Y);
+            if (impactNormalPerpendicular.DotProdcut(velocityANormal) < 0)
+                impactNormalPerpendicular = impactNormalPerpendicular.Multiply(-1);
+            //get normal of 2 vector
+
+
+            //generate force distribution ratios
+
+
+            //multiply distrubuted forces by RestitutionFactor (DO NOT *disappear* forces)
+
+
+            //add pointOfReferenceVelocity back
+
+
+            //apply impluses (velocity) ///this is not *force* since it is *exchange* of impulses
+
+
+            //===================================================friction part>>
+        }
+        private static void CircleVsCircleStatic(Primitive circleA, Primitive circleB) {
+            if ((circleA.IsStatic || circleA.Mass == 0) && (circleB.IsStatic || circleB.Mass == 0))
+                return; //deadlock
+
+            if (circleA.IsStatic || circleA.Mass == 0){
+                var circle = circleA;
+                circleA = circleB;
+                circleB = circle;
+            }
+            //===================================================Bounce>>
+
+
+            //===================================================friction part>>
         }
 
-    public static void CircleVsBox(Primitive circle, Primitive box)
+        public static void CircleVsBox(Primitive circle, Primitive box)
         {
             if (circle.IsBox || !box.IsBox)
                 throw new InvalidOperationException("mess");
 
+            if (!circle.AABBvsAABB(box))
+                return;//no colision
+
+            var bounce = circle.IsStatic || circle.Mass == 0;
+            if (bounce) BoxVsCircleStatic(circle, box);
+            if (bounce) return;//bounce
+
+            bounce = box.IsStatic || box.Mass == 0;
+            if (bounce) CircleVsBoxStatic(circle, box);
+            if (bounce) return;//bounce
+
             var man = CollisionResult.CircleVsBox(circle, box);
             if (!man.Hit)
-                return;
+                return;//no contact
+            //===================================================exchange of impulses>>
 
+
+            //===================================================friction part>>
+        }
+        private static void CircleVsBoxStatic(Primitive circle, Primitive box)
+        {
+            if ((circle.IsStatic || circle.Mass == 0) && (box.IsStatic || box.Mass == 0))
+                return; //deadlock
+            //===================================================Bounce>>
+
+
+            //===================================================friction part>>
+        }
+        private static void BoxVsCircleStatic(Primitive circle, Primitive box)
+        {
+            if ((circle.IsStatic || circle.Mass == 0) && (box.IsStatic || box.Mass == 0))
+                return; //deadlock
+            //===================================================Bounce>>
+
+
+            //===================================================friction part>>
         }
 
         public static void BoxVsBox(Primitive boxA, Primitive boxB)
@@ -812,11 +908,38 @@ namespace Mag.Physics.Primitives
             if (!boxA.IsBox || !boxB.IsBox)
                 throw new InvalidOperationException("Not a box");
 
+            if (!boxA.AABBvsAABB(boxB))
+                return;//no colision
+
+            var bounce = boxA.IsStatic || boxA.Mass == 0 || boxB.IsStatic || boxB.Mass == 0;
+            if (bounce) BoxVsBoxStatic(boxA, boxB);
+            if (bounce) return;//bounce
+
             var man = CollisionResult.BoxVsBox(boxA, boxB);
             if (!man.Hit)
-                return;
+                return;//no contact
+            //===================================================exchange of impulses>>
 
+
+            //===================================================friction part>>
         }
+        private static void BoxVsBoxStatic(Primitive boxA, Primitive boxB)
+        {
+            if ((boxA.IsStatic || boxA.Mass == 0) && (boxB.IsStatic || boxB.Mass == 0))
+                return; //deadlock
+
+            if (boxA.IsStatic || boxA.Mass == 0)
+            {
+                var box = boxA;
+                boxA = boxB;
+                boxB = box;
+            }
+            //===================================================Bounce>>
+
+
+            //===================================================friction part>>
+        }
+
     }
 
 }

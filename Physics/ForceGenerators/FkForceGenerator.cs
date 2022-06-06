@@ -11,11 +11,11 @@ namespace Mag.Physics.ForceGenerators
     public interface FkForceGenerator
     {
         /// <summary>
-        /// 
+        /// Forces generator should ONLY ADD forces and not modify anything else
         /// </summary>
-        /// <param name="ob"></param>
+        /// <param name="ob">object to update</param>
         /// <param name="dt">fraction of second</param>
-        /// <param name="frame"></param>
+        /// <param name="frame">frame of simulation</param>
         public void UpdateForce(Primitive ob, int frame);
     }
     public class FkGravity : FkForceGenerator //this generator produces constant gravity
