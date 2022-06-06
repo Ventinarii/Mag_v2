@@ -815,28 +815,17 @@ namespace Mag.Physics.Primitives
             var relativeVelocity = circleB.Velocity.Subtract(circleA.Velocity);
             var normalRelativeVelocity = relativeVelocity.Normalize();
 
-            var momentumA = circleA.Velocity.Multiply(circleA.Mass);
-            var momentumB = circleB.Velocity.Multiply(circleB.Mass);
-
-            var relativeBMomentum = momentumB.Subtract(momentumA);
-
             var impactNormal = -man.Normal.DotProdcut(normalRelativeVelocity);
             if (0 < impactNormal)  { 
                 var minRestitution = Math.Min(circleA.RestitutionFactor, circleB.RestitutionFactor);
 
-                var impulse = man.Normal.Multiply((minRestitution + 1) * relativeBMomentum.DotProdcut(man.Normal) * 0.5);
+                var num = (-(1 + minRestitution) * relativeVelocity.DotProdcut(man.Normal));
+                num = num / (circleA.InvertedMass + circleB.InvertedMass);
 
-                var newMomentumA = impulse;
-                var newMomentumB = relativeBMomentum.Add(impulse.Multiply(-1));
+                var impulse = man.Normal.Multiply(num);
 
-                var globalMomentumA = newMomentumA.Add(momentumA);
-                var globalMomentumB = newMomentumB.Add(momentumA);
-
-                var newVelocityA = globalMomentumA.Multiply(circleA.InvertedMass);
-                var newVelocityB = globalMomentumB.Multiply(circleB.InvertedMass);
-
-                circleA.Velocity = newVelocityA;
-                circleB.Velocity = newVelocityB;
+                circleA.Velocity = circleA.Velocity.Add(impulse.Multiply(-circleA.InvertedMass));
+                circleB.Velocity = circleB.Velocity.Add(impulse.Multiply( circleB.InvertedMass));
             }
             if (FirstCall)
             {
