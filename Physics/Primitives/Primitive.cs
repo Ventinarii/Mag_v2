@@ -703,20 +703,14 @@ namespace Mag.Physics.Primitives
             if(IsBox)
                 return BoxGetVerticesRotated();
 
-            var rotated = new FkMatrix2(-45).Rotate(new FkVector2(Scale.X, 0));
-
-            FkVector2[] arr = new FkVector2[8];
-            arr[0] = new FkVector2(Scale.X, 0);//tight
-            arr[1] = rotated;
-            arr[2] = new FkVector2(0, Scale.X);//top
-            arr[3] = new FkVector2(-rotated.X, rotated.Y);
-            arr[4] = arr[0].Multiply(-1);//left
-            arr[5] = arr[1].Multiply(-1);
-            arr[6] = arr[2].Multiply(-1);//bottom
-            arr[7] = arr[3].Multiply(-1);
+            var vertC = 32;
+            var step = new FkMatrix2(360d / vertC);
+            FkVector2[] arr = new FkVector2[vertC];
+            arr[0] = new FkVector2(Scale.X, 0);
+            for (int i = 1; i < arr.Length; i++)
+                arr[i] = step.Rotate(arr[i - 1]);
 
             var mat = new FkMatrix2(this.Rotation);
-
             for (int i = 0; i < arr.Length; i++)
                 arr[i] = mat.Rotate(arr[i]).Add(this.Position);
             return arr;
@@ -773,11 +767,95 @@ namespace Mag.Physics.Primitives
 
         public static CollisionResult CircleVsBox(Primitive circle, Primitive box)
         {
+            var vert = box.BoxGetVerticesRotated();
+            if (!(
+                box.PointInBox(circle.Position) ||
+                circle.LineInCircle(vert[0], vert[1]) ||//right wall
+                circle.LineInCircle(vert[1], vert[2]) ||//bottom
+                circle.LineInCircle(vert[2], vert[3]) ||//left wall
+                circle.LineInCircle(vert[3], vert[0])))// top
+                return new CollisionResult();
+
+            var mat = new FkMatrix2(box.Rotation);
+
+            var relativePos = circle.Position.Subtract(box.Position);
+            var relativeUnRotated = mat.UnRotate(relativePos);
+
+            List<FkVector2> vectors = new List<FkVector2>();
+
+            Double XL = -box.Scale.X;
+            Double XR = -XL;
+            Double YT = box.Scale.Y;
+            Double YB = -YT;
+
+            var x = 0d;
+            var y = 0d;
+
+            //X and Y are given
+            //r^2=(x-X)^2+(y-Y)^2
+
+            var r2 = FkMath.Pow2(circle.Scale.X);
+            var X = relativeUnRotated.X;
+            var Y = relativeUnRotated.Y;
+
+            y = YT;
+            var A = r2 - FkMath.Pow2(y - Y);
+            if (0 <= A) {
+                A = Math.Sqrt(A);
+                vectors.Add(new FkVector2(X + A, y));
+                if (A != 0)
+                {
+                    vectors.Add(new FkVector2(X - A, y));
+                }
+            }
+            y = YB;
+            A = r2 - FkMath.Pow2(y - Y);
+            if (0 <= A)
+            {
+                A = Math.Sqrt(A);
+                vectors.Add(new FkVector2(X - A, y));
+                if(A!=0)
+                { 
+                    vectors.Add(new FkVector2(X + A, y));
+                }
+            }
+            //===========================================
+            x = XL;
+            A = r2 - FkMath.Pow2(x - X);
+            if (0 <= A)
+            {
+                A = Math.Sqrt(A);
+                vectors.Add(new FkVector2(x, Y - A));
+                if (A != 0)
+                {
+                    vectors.Add(new FkVector2(x, Y + A));
+                }
+            }
+            x = XR;
+            A = r2 - FkMath.Pow2(x - X);
+            if (0 <= A)
+            {
+                A = Math.Sqrt(A);
+                
+                vectors.Add(new FkVector2(x, Y - A));
+                if (A != 0)
+                {
+                    vectors.Add(new FkVector2(x, Y + A));
+                }
+            }
 
 
-            //write stuff here
-
-            return null;
+            vectors = vectors.Where(v=>FkMath.InRange(XL-0.01,v.X,XR+0.01)&& FkMath.InRange(YB - 0.01, v.Y, YT+0.01)).ToList();
+            if (vectors.Count() == 0)
+                return new CollisionResult();
+            FkVector2 avg = null;
+            if (vectors.Count() == 1)
+                avg = vectors[0];
+            else
+                avg = vectors[0].Add(vectors[1]).Multiply(0.5d);//consider 2 points of contact
+            avg = mat.Rotate(avg).Add(box.Position);
+            var normal = avg.Subtract(circle.Position).Normalize();
+            return new CollisionResult(normal, avg, avg.Subtract(circle.Position).Length()/2,true);
         }
 
         public static CollisionResult BoxVsBox(Primitive boxA, Primitive boxB)
@@ -831,9 +909,8 @@ namespace Mag.Physics.Primitives
             {
                 var forceAvg = (circleA.repelForce + circleB.repelForce) / 2;
                 var fractionOfForce = 1 - (realativePositionOfB.LengthSquared() / FkMath.Pow2(circleA.Scale.X + circleB.Scale.X));
-                circleB.forceResult = circleB.forceResult.Add(man.Normal.Multiply(fractionOfForce * forceAvg));
                 circleA.forceResult = circleA.forceResult.Add(man.Normal.Multiply(fractionOfForce * forceAvg * -1));
-
+                circleB.forceResult = circleB.forceResult.Add(man.Normal.Multiply(fractionOfForce * forceAvg));
                 var x = 2;
             }
             //===================================================friction part>>
@@ -847,9 +924,34 @@ namespace Mag.Physics.Primitives
                 circleA = circleB;
                 circleB = circle;
             }
+
+            var man = CollisionResult.CircleVsCircle(circleA, circleB);
+            if (!man.Hit)
+                return;//no contact
             //===================================================Bounce>>
+            var realativePositionOfB = circleB.Position.Subtract(circleA.Position);
+            var relativeVelocity = circleB.Velocity.Subtract(circleA.Velocity);
+            var normalRelativeVelocity = relativeVelocity.Normalize();
 
+            var impactNormal = -man.Normal.DotProdcut(normalRelativeVelocity);
+            if (0 < impactNormal)
+            {
+                var minRestitution = Math.Min(circleA.RestitutionFactor, circleB.RestitutionFactor);
 
+                var num = (-(1 + minRestitution) * relativeVelocity.DotProdcut(man.Normal));
+                num = num / (circleA.InvertedMass);
+
+                var impulse = man.Normal.Multiply(num);
+
+                circleA.Velocity = circleA.Velocity.Add(impulse.Multiply(-circleA.InvertedMass));
+            }
+            if (FirstCall)
+            {
+                var forceAvg = (circleA.repelForce + circleB.repelForce) / 2;
+                var fractionOfForce = 1 - (realativePositionOfB.LengthSquared() / FkMath.Pow2(circleA.Scale.X + circleB.Scale.X));
+                circleA.forceResult = circleA.forceResult.Add(man.Normal.Multiply(fractionOfForce * forceAvg * -1));
+                var x = 2;
+            }
             //===================================================friction part>>
         }
 
@@ -862,12 +964,16 @@ namespace Mag.Physics.Primitives
                 return;//no colision
 
             var bounce = circle.IsStatic || circle.Mass == 0;
-            if (bounce) BoxVsCircleStatic(circle, box, FirstCall);
-            if (bounce) return;//bounce
+            if (bounce) 
+                BoxVsCircleStatic(circle, box, FirstCall);
+            if (bounce) 
+                return;//bounce
 
             bounce = box.IsStatic || box.Mass == 0;
-            if (bounce) CircleVsBoxStatic(circle, box, FirstCall);
-            if (bounce) return;//bounce
+            if (bounce) 
+                CircleVsBoxStatic(circle, box, FirstCall);
+            if (bounce) 
+                return;//bounce
 
             var man = CollisionResult.CircleVsBox(circle, box);
             if (!man.Hit)
@@ -881,9 +987,34 @@ namespace Mag.Physics.Primitives
         {
             if ((circle.IsStatic || circle.Mass == 0) && (box.IsStatic || box.Mass == 0))
                 return; //deadlock
+            var vert = box.BoxGetVerticesRotated();
+            if (!(
+                box.PointInBox(circle.Position) ||
+                circle.LineInCircle(vert[0], vert[1]) ||//right wall
+                circle.LineInCircle(vert[1], vert[2]) ||//bottom
+                circle.LineInCircle(vert[2], vert[3]) ||//left wall
+                circle.LineInCircle(vert[3], vert[0])))// top
+                return;
+            var man = CollisionResult.CircleVsBox(circle, box);
+            if (!man.Hit)
+                return;//no contact
             //===================================================Bounce>>
+            var realativePositionOfB = box.Position.Subtract(circle.Position);
+            var relativeVelocity = box.Velocity.Subtract(circle.Velocity);
+            var normalRelativeVelocity = relativeVelocity.Normalize();
 
+            var impactNormal = -man.Normal.DotProdcut(normalRelativeVelocity);
+            if (0 < impactNormal)
+            {
+                var minRestitution = Math.Min(circle.RestitutionFactor, box.RestitutionFactor);
 
+                var num = (-(1 + minRestitution) * relativeVelocity.DotProdcut(man.Normal));
+                num = num / (circle.InvertedMass);
+
+                var impulse = man.Normal.Multiply(num);
+
+                circle.Velocity = circle.Velocity.Add(impulse.Multiply(-circle.InvertedMass));
+            }
             //===================================================friction part>>
         }
         private static void BoxVsCircleStatic(Primitive circle, Primitive box, bool FirstCall)

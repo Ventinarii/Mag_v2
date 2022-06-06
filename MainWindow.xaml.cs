@@ -34,7 +34,7 @@ namespace Mag
             InitializeComponent();
             
             clock = new DispatcherTimer();
-            clock.Interval = TimeSpan.FromMilliseconds(FkPhysicsEngine.dt * 1000);
+            clock.Interval = TimeSpan.FromMilliseconds(FkPhysicsEngine.dt * 100);
             clock.Tick += RenderFrame;
 
             //here create content of world
@@ -139,7 +139,7 @@ namespace Mag
                    ApplyGenerators: true,
                    Mass: 10,
                    RestitutionFactor: 0.9);
-            //FkPhysicsEngine.primitives.Add(A);
+            FkPhysicsEngine.primitives.Add(A);
             A = new Primitive(
                    Position: new FkVector2(300, 500),
                    Rotation: 0,
@@ -150,8 +150,46 @@ namespace Mag
                    IsStatic: false,
                    ApplyGenerators: false,
                    Mass: 10,
-                   RestitutionFactor: 0.1);
-            //FkPhysicsEngine.primitives.Add(A);
+                   RestitutionFactor: 0.2);
+            FkPhysicsEngine.primitives.Add(A);
+
+            A = new Primitive(
+                   Position: new FkVector2(700, 900),
+                   Rotation: 0,
+                   Velocity: new FkVector2(0, 0),
+                   Angular: 0,
+                   Scale: new FkVector2(50, 10),
+                   IsBox: false,
+                   IsStatic: false,
+                   ApplyGenerators: true,
+                   Mass: 10,
+                   RestitutionFactor: 1);
+            FkPhysicsEngine.primitives.Add(A);
+            A = new Primitive(
+                   Position: new FkVector2(700, 500),
+                   Rotation: 0,
+                   Velocity: new FkVector2(0, 0),
+                   Angular: 0,
+                   Scale: new FkVector2(50, 10),
+                   IsBox: false,
+                   IsStatic: true,
+                   ApplyGenerators: false,
+                   Mass: 10,
+                   RestitutionFactor: 1);
+            FkPhysicsEngine.primitives.Add(A);
+
+            A = new Primitive(
+                   Position: new FkVector2(700, 300),
+                   Rotation: 0,
+                   Velocity: new FkVector2(500, 500),
+                   Angular: 0,
+                   Scale: new FkVector2(50, 10),
+                   IsBox: false,
+                   IsStatic: false,
+                   ApplyGenerators: true,
+                   Mass: 100,
+                   RestitutionFactor: 1);
+            FkPhysicsEngine.primitives.Add(A);
 
             //here create define generators
             if (true)FkPhysicsEngine.generatores.Add(new FkGravity());

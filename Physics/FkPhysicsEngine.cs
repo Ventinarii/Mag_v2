@@ -19,7 +19,7 @@ namespace Mag.Physics
         public static readonly FkVector2 G1 = new FkVector2(0d, -100d);
         public static readonly double frictionFractionLinear = -1;
         public static readonly double frictionFractionAngular = -1;
-        public static readonly double dt = (1d / 30d);
+        public static readonly double dt = (1d / 100d);
         //========================================================================================================================
         /// <summary>
         /// >>==>>this is representation of data table in database engine<<==<<
