@@ -812,32 +812,40 @@ namespace Mag.Physics.Primitives
                 return;//no contact
             //===================================================exchange of impulses>>
             var realativePositionOfB = circleB.Position.Subtract(circleA.Position);
-            var normalRelativeVelocity = circleB.Velocity.Subtract(circleA.Velocity).Normalize();
+            var relativeVelocity = circleB.Velocity.Subtract(circleA.Velocity);
+            var normalRelativeVelocity = relativeVelocity.Normalize();
 
             var momentumA = circleA.Velocity.Multiply(circleA.Mass);
             var momentumB = circleB.Velocity.Multiply(circleB.Mass);
+
             var relativeBMomentum = momentumB.Subtract(momentumA);
 
             var impactNormal = -man.Normal.DotProdcut(normalRelativeVelocity);
-
             if (0 < impactNormal)  { 
                 var minRestitution = Math.Min(circleA.RestitutionFactor, circleB.RestitutionFactor);
-                var relativeAngle = normalRelativeVelocity.DotProdcut(man.Normal);
 
-                var impulse = man.Normal.Multiply((minRestitution + 1) * relativeAngle * relativeBMomentum.Length() * 0.5);
+                var impulse = man.Normal.Multiply((minRestitution + 1) * relativeBMomentum.DotProdcut(man.Normal) * 0.5);
 
-                momentumA = momentumA.Add(impulse);
-                momentumB = momentumB.Add(impulse.Multiply(-1));
+                var newMomentumA = impulse;
+                var newMomentumB = relativeBMomentum.Add(impulse.Multiply(-1));
 
-                circleA.Velocity = momentumA.Multiply(circleA.InvertedMass);
-                circleB.Velocity = momentumB.Multiply(circleB.InvertedMass);
+                var globalMomentumA = newMomentumA.Add(momentumA);
+                var globalMomentumB = newMomentumB.Add(momentumA);
+
+                var newVelocityA = globalMomentumA.Multiply(circleA.InvertedMass);
+                var newVelocityB = globalMomentumB.Multiply(circleB.InvertedMass);
+
+                circleA.Velocity = newVelocityA;
+                circleB.Velocity = newVelocityB;
             }
             if (FirstCall)
             {
                 var forceAvg = (circleA.repelForce + circleB.repelForce) / 2;
-                var fractionOfForce = realativePositionOfB.LengthSquared() / FkMath.Pow2(circleA.Scale.X + circleB.Scale.X);
+                var fractionOfForce = 1 - (realativePositionOfB.LengthSquared() / FkMath.Pow2(circleA.Scale.X + circleB.Scale.X));
                 circleB.forceResult = circleB.forceResult.Add(man.Normal.Multiply(fractionOfForce * forceAvg));
                 circleA.forceResult = circleA.forceResult.Add(man.Normal.Multiply(fractionOfForce * forceAvg * -1));
+
+                var x = 2;
             }
             //===================================================friction part>>
         }
