@@ -48,7 +48,10 @@ namespace Mag
                    Angular: 0,
                    Scale: new FkVector2(500, 10),
                    IsBox: true,
-                   IsStatic: true);
+                   IsStatic: true,
+                   ApplyGenerators: false,
+                   Mass: 10,
+                   RestitutionFactor: 0.9);
                 FkPhysicsEngine.primitives.Add(A);
                 A = new Primitive(
                    Position: new FkVector2(500, 990),
@@ -57,7 +60,10 @@ namespace Mag
                    Angular: 0,
                    Scale: new FkVector2(500, 10),
                    IsBox: true,
-                   IsStatic: true);
+                   IsStatic: true,
+                   ApplyGenerators: false,
+                   Mass: 10,
+                   RestitutionFactor: 0.9);
                 FkPhysicsEngine.primitives.Add(A);
                 A = new Primitive(
                    Position: new FkVector2(10, 500),
@@ -66,7 +72,10 @@ namespace Mag
                    Angular: 0,
                    Scale: new FkVector2(10, 480),
                    IsBox: true,
-                   IsStatic: true);
+                   IsStatic: true,
+                   ApplyGenerators: false,
+                   Mass: 10,
+                   RestitutionFactor: 0.9);
                 FkPhysicsEngine.primitives.Add(A);
                 A = new Primitive(
                    Position: new FkVector2(990, 500),
@@ -75,65 +84,74 @@ namespace Mag
                    Angular: 0,
                    Scale: new FkVector2(10, 480),
                    IsBox: true,
-                   IsStatic: true);
+                   IsStatic: true,
+                   ApplyGenerators: false,
+                   Mass: 10,
+                   RestitutionFactor: 0.9);
                 FkPhysicsEngine.primitives.Add(A);
             }
 
-            if (true)
-            { //constants
-                A = new Primitive(
-                   Position: new FkVector2(150, 400),
-                   Rotation: 0,
-                   Velocity: new FkVector2(100, 300),
-                   Angular: 45,
-                   Scale: new FkVector2(25, 25),
-                   IsBox: true,
-                   IsStatic: true);
-                FkPhysicsEngine.primitives.Add(A);
-                A = new Primitive(
-                   Position: new FkVector2(150, 450),
-                   Rotation: 0,
-                   Velocity: new FkVector2(100, 300),
-                   Angular: 45,
-                   Scale: new FkVector2(25, 25),
-                   IsBox: true,
-                   IsStatic: false)
-                { Mass = 0 };
-                FkPhysicsEngine.primitives.Add(A);
-            }
-            if (true)
-            {//FLY!!
-                A = new Primitive(
-                  Position: new FkVector2(50, 400),
-                  Rotation: 0,
-                  Velocity: new FkVector2(100, 200),
-                  Angular: 90,
-                  Scale: new FkVector2(25, 25),
-                  IsBox: true,
-                  IsStatic: false);
-                FkPhysicsEngine.primitives.Add(A);
-                A = new Primitive(
-                   Position: new FkVector2(250, 400),
-                   Rotation: 0,
-                   Velocity: new FkVector2(600, 400),
-                   Angular: -1000,
-                   Scale: new FkVector2(25, 0),
-                   IsBox: false,
-                   IsStatic: false);
-                FkPhysicsEngine.primitives.Add(A);
-            }
-            if (true) 
-            {//WAIT.
-                A = new Primitive(
-                   Position: new FkVector2(500, 500),
+            A = new Primitive(
+                   Position: new FkVector2(500, 900),
                    Rotation: 0,
                    Velocity: new FkVector2(0, 0),
-                   Angular: -1000,
-                   Scale: new FkVector2(25, 0),
+                   Angular: 0,
+                   Scale: new FkVector2(50, 10),
                    IsBox: false,
-                   IsStatic: false);
-                FkPhysicsEngine.primitives.Add(A);
-            }
+                   IsStatic: false,
+                   ApplyGenerators: true,
+                   Mass: 10,
+                   RestitutionFactor: 1);
+            FkPhysicsEngine.primitives.Add(A);
+            A = new Primitive(
+                   Position: new FkVector2(500, 700),
+                   Rotation: 0,
+                   Velocity: new FkVector2(0, 0),
+                   Angular: 0,
+                   Scale: new FkVector2(50, 10),
+                   IsBox: false,
+                   IsStatic: false,
+                   ApplyGenerators: false,
+                   Mass: 10,
+                   RestitutionFactor: 1);
+            FkPhysicsEngine.primitives.Add(A);
+            A = new Primitive(
+                   Position: new FkVector2(500, 400),
+                   Rotation: 0,
+                   Velocity: new FkVector2(0, 0),
+                   Angular: 0,
+                   Scale: new FkVector2(100, 10),
+                   IsBox: false,
+                   IsStatic: false,
+                   ApplyGenerators: false,
+                   Mass: 1000,
+                   RestitutionFactor: 1);
+            FkPhysicsEngine.primitives.Add(A);
+
+            A = new Primitive(
+                   Position: new FkVector2(300, 900),
+                   Rotation: 0,
+                   Velocity: new FkVector2(0, 0),
+                   Angular: 0,
+                   Scale: new FkVector2(50, 10),
+                   IsBox: false,
+                   IsStatic: false,
+                   ApplyGenerators: true,
+                   Mass: 10,
+                   RestitutionFactor: 0.9);
+            //FkPhysicsEngine.primitives.Add(A);
+            A = new Primitive(
+                   Position: new FkVector2(300, 500),
+                   Rotation: 0,
+                   Velocity: new FkVector2(0, 0),
+                   Angular: 0,
+                   Scale: new FkVector2(50, 10),
+                   IsBox: false,
+                   IsStatic: false,
+                   ApplyGenerators: false,
+                   Mass: 10,
+                   RestitutionFactor: 0.1);
+            //FkPhysicsEngine.primitives.Add(A);
 
             //here create define generators
             if (true)FkPhysicsEngine.generatores.Add(new FkGravity());

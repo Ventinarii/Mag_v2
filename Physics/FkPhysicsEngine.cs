@@ -38,15 +38,17 @@ namespace Mag.Physics
             var boxes = primitives.Where(x => x.IsBox).ToList();
             var sizeB = boxes.Count();
             //resolve colisions  
-            for (int i = 0; i < sizeC; i++)
-                for (int x = i + 1; x < sizeC; x++)
-                    ColisionResolution.CircleVsCircle(circles[i], circles[x]);
-            for (int i = 0; i < sizeB; i++)
-                for (int x = i + 1; x < sizeB; x++)
-                    ColisionResolution.BoxVsBox(boxes[i], boxes[x]);
-            for (int i = 0; i < sizeC; i++)
-                for (int x = 0; x < sizeB; x++)
-                    ColisionResolution.CircleVsBox(circles[i], boxes[x]);
+            for (int iterations = 0; iterations <= 2; iterations++) { 
+                for (int i = 0; i < sizeC; i++)
+                    for (int x = i + 1; x < sizeC; x++)
+                        ColisionResolution.CircleVsCircle(circles[i], circles[x], iterations==0);
+                for (int i = 0; i < sizeB; i++)
+                    for (int x = i + 1; x < sizeB; x++)
+                        ColisionResolution.BoxVsBox(boxes[i], boxes[x], iterations == 0);
+                for (int i = 0; i < sizeC; i++)
+                    for (int x = 0; x < sizeB; x++)
+                        ColisionResolution.CircleVsBox(circles[i], boxes[x], iterations == 0);
+            }
             //apply space partition above                      
             primitives.ForEach(ob => {
                 ob.Update(dt);
