@@ -5,7 +5,9 @@ VisualStudioVersion = 17.1.32319.34
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mag", "Mag.csproj", "{EC47E2B4-3F3B-4C65-97BF-36C57F50D284}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MagTests", "..\MagTests\MagTests.csproj", "{92962FE6-BB7F-4CF9-9610-ABA1F01D85F2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MagTests", "..\MagTests\MagTests.csproj", "{92962FE6-BB7F-4CF9-9610-ABA1F01D85F2}"
+EndProject
+Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "CLR", "..\CLR\CLR.sqlproj", "{BAFF8407-8D9D-4D9D-A802-687AB373954D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,12 @@ Global
 		{92962FE6-BB7F-4CF9-9610-ABA1F01D85F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{92962FE6-BB7F-4CF9-9610-ABA1F01D85F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{92962FE6-BB7F-4CF9-9610-ABA1F01D85F2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BAFF8407-8D9D-4D9D-A802-687AB373954D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BAFF8407-8D9D-4D9D-A802-687AB373954D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BAFF8407-8D9D-4D9D-A802-687AB373954D}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{BAFF8407-8D9D-4D9D-A802-687AB373954D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BAFF8407-8D9D-4D9D-A802-687AB373954D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BAFF8407-8D9D-4D9D-A802-687AB373954D}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
