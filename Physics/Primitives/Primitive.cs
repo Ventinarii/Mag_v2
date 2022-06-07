@@ -307,54 +307,6 @@ namespace Mag.Physics.Primitives
                 LineOnLine(lineStart, lineEnd, vert[3], vert[0]);
         }
         /// <summary>
-        /// ray trace against rotated box. expensive. >>#7
-        /// </summary>
-        /// <exception cref="InvalidOperationException"></exception>
-        public RayCastResult RayCastBox(FkVector2 origin, FkVector2 direction)
-        {
-            if (!this.IsBox)
-                throw new InvalidOperationException("this is circle, not box");
-            var fail = new RayCastResult(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
-            var mat = new FkMatrix2(Rotation);
-            if (direction.LengthSquared() == 0)
-                return fail;
-            direction = direction.Normalize();
-            var xAxis = new FkVector2(1, 0);
-            var yAxis = new FkVector2(0, 1);
-            xAxis = mat.UnRotate(xAxis);
-            yAxis = mat.UnRotate(yAxis);
-            var p = this.Position.Subtract(origin);
-            var f = new FkVector2(xAxis.DotProdcut(direction), yAxis.DotProdcut(direction));
-            var e = new FkVector2(xAxis.DotProdcut(p), yAxis.DotProdcut(p));
-            double[] arr = { 0, 0, 0, 0 };
-            for (int i = 0; i < 2; i++)
-            {
-                var fi = (i == 0) ? (f.X) : (f.Y);
-                var ei = (i == 0) ? (e.X) : (e.Y);
-                var sizeI = (i == 0) ? (Scale.X) : (Scale.Y);
-                if (FkMath.EqualWIthError(fi, 0))
-                {
-                    if (-ei - sizeI > 0 || -ei + sizeI < 0)
-                        return fail;
-                    if (i == 0)
-                        f = new FkVector2(0.00001, f.Y);
-                    else
-                        f = new FkVector2(f.X, 0.00001);
-                }
-                arr[i * 2 + 0] = (ei + sizeI) / fi;
-                arr[i * 2 + 1] = (ei - sizeI) / fi;
-            }
-            var tmin = Math.Max(Math.Min(arr[0], arr[1]), Math.Min(arr[2], arr[3]));
-            var tmax = Math.Min(Math.Max(arr[0], arr[1]), Math.Max(arr[2], arr[3]));
-            var t = (tmin < 0f) ? tmax : tmin;
-            if (t<0)
-                return fail;
-            var point = origin.Add(direction.Multiply(t));
-            var normal = origin.Subtract(point);
-            normal = normal.Normalize();
-            return new RayCastResult(point, normal, t, true);
-        }
-        /// <summary>
         /// checks if 2 boxes overlap. includes all tricy cases such as '+'
         /// the most simple and realiable, the least efficient. optimize #11
         /// NOTE: solution was downgraded from relative position from corners to current state.
@@ -467,53 +419,6 @@ namespace Mag.Physics.Primitives
                 LineOnLine(lineStart, lineEnd, vert[2], vert[3]) ||
                 LineOnLine(lineStart, lineEnd, vert[3], vert[0]);
         }
-        /// <summary>
-        /// copy-paste of RayCastBox()
-        /// ray trace against rotated box. expensive. >>#7
-        /// </summary>
-        public RayCastResult RayCastAABB(FkVector2 origin, FkVector2 direction)
-        {
-            var fail = new RayCastResult(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
-            var mat = new FkMatrix2(Rotation);
-            if (direction.LengthSquared() == 0)
-                return fail;
-            direction = direction.Normalize();
-            var max = getMinMaxRelative().b;
-            var xAxis = new FkVector2(1, 0);
-            var yAxis = new FkVector2(0, 1);
-            xAxis = mat.UnRotate(xAxis);
-            yAxis = mat.UnRotate(yAxis);
-            var p = this.Position.Subtract(origin);
-            var f = new FkVector2(xAxis.DotProdcut(direction), yAxis.DotProdcut(direction));
-            var e = new FkVector2(xAxis.DotProdcut(p), yAxis.DotProdcut(p));
-            double[] arr = { 0, 0, 0, 0 };
-            for (int i = 0; i < 2; i++)
-            {
-                var fi = (i == 0) ? (f.X) : (f.Y);
-                var ei = (i == 0) ? (e.X) : (e.Y);
-                var sizeI = (i == 0) ? (max.X) : (max.Y);
-                if (FkMath.EqualWIthError(fi, 0))
-                {
-                    if (-ei - sizeI > 0 || -ei + sizeI < 0)
-                        return fail;
-                    if (i == 0)
-                        f = new FkVector2(0.00001, f.Y);
-                    else
-                        f = new FkVector2(f.X, 0.00001);
-                }
-                arr[i * 2 + 0] = (ei + sizeI) / fi;
-                arr[i * 2 + 1] = (ei - sizeI) / fi;
-            }
-            var tmin = Math.Max(Math.Min(arr[0], arr[1]), Math.Min(arr[2], arr[3]));
-            var tmax = Math.Min(Math.Max(arr[0], arr[1]), Math.Max(arr[2], arr[3]));
-            var t = (tmin < 0f) ? tmax : tmin;
-            if (t < 0)
-                return fail;
-            var point = origin.Add(direction.Multiply(t));
-            var normal = origin.Subtract(point);
-            normal = normal.Normalize();
-            return new RayCastResult(point, normal, t, true);
-        }
         //========================================================================================================================InsersectionDetector 2D
         /// <summary>
         /// check if given point is on given line
@@ -565,7 +470,7 @@ namespace Mag.Physics.Primitives
         public FkVector2[] RALgetRenderVerts() { 
             if(IsBox)
                 return BoxGetVerticesRotated();
-            var NumberOfVerticecs = 32;
+            var NumberOfVerticecs = 16;
             var step = new FkMatrix2(360d / NumberOfVerticecs);
             FkVector2[] arr = new FkVector2[NumberOfVerticecs];
             arr[0] = new FkVector2(Scale.X, 0);
@@ -715,11 +620,6 @@ namespace Mag.Physics.Primitives
             var normal = avg.Subtract(circle.Position).Normalize();
             return new CollisionResult(normal, avg, avg.Subtract(circle.Position).Length()/2,true);
         }
-        public static CollisionResult BoxVsBox(Primitive boxA, Primitive boxB)
-        {
-            //...
-            return null;
-        }
     }
 
     public class ColisionResolution {
@@ -799,8 +699,6 @@ namespace Mag.Physics.Primitives
                 return;//no colision
             var bounce = circle.IsStatic || circle.Mass == 0;
             if (bounce) 
-                BoxVsCircleStatic(circle, box, FirstCall);
-            if (bounce) 
                 return;//bounce
             bounce = box.IsStatic || box.Mass == 0;
             if (bounce) 
@@ -840,41 +738,6 @@ namespace Mag.Physics.Primitives
                 var impulse = man.Normal.Multiply(num);
                 circle.Velocity = circle.Velocity.Add(impulse.Multiply(-circle.InvertedMass));
             }
-        }
-        private static void BoxVsCircleStatic(Primitive circle, Primitive box, bool FirstCall)
-        {
-            if ((circle.IsStatic || circle.Mass == 0) && (box.IsStatic || box.Mass == 0))
-                return; //deadlock
-            //===================================================Bounce>>
-            //...
-        }
-        public static void BoxVsBox(Primitive boxA, Primitive boxB, bool FirstCall)
-        {
-            if (!boxA.IsBox || !boxB.IsBox)
-                throw new InvalidOperationException("Not a box");
-            if (!boxA.AABBvsAABB(boxB))
-                return;//no colision
-            var bounce = boxA.IsStatic || boxA.Mass == 0 || boxB.IsStatic || boxB.Mass == 0;
-            if (bounce) BoxVsBoxStatic(boxA, boxB, FirstCall);
-            if (bounce) return;//bounce
-            var man = CollisionResult.BoxVsBox(boxA, boxB);
-            if (!man.Hit)
-                return;//no contact
-            //===================================================exchange of impulses>>
-            //...
-        }
-        private static void BoxVsBoxStatic(Primitive boxA, Primitive boxB, bool FirstCall)
-        {
-            if ((boxA.IsStatic || boxA.Mass == 0) && (boxB.IsStatic || boxB.Mass == 0))
-                return; //deadlock
-            if (boxA.IsStatic || boxA.Mass == 0)
-            {
-                var box = boxA;
-                boxA = boxB;
-                boxB = box;
-            }
-            //===================================================Bounce>>
-            //...
         }
     }
 

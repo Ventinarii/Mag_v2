@@ -42,9 +42,6 @@ namespace Mag.Physics
                 for (int i = 0; i < sizeC; i++)
                     for (int x = i + 1; x < sizeC; x++)
                         ColisionResolution.CircleVsCircle(circles[i], circles[x], iterations==0);
-                for (int i = 0; i < sizeB; i++)
-                    for (int x = i + 1; x < sizeB; x++)
-                        ColisionResolution.BoxVsBox(boxes[i], boxes[x], iterations == 0);
                 for (int i = 0; i < sizeC; i++)
                     for (int x = 0; x < sizeB; x++)
                         ColisionResolution.CircleVsBox(circles[i], boxes[x], iterations == 0);

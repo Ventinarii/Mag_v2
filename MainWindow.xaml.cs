@@ -32,11 +32,9 @@ namespace Mag
         public MainWindow()
         {
             InitializeComponent();
-            
             clock = new DispatcherTimer();
-            clock.Interval = TimeSpan.FromMilliseconds(FkPhysicsEngine.dt * 100);
+            clock.Interval = TimeSpan.FromMilliseconds(FkPhysicsEngine.dt * 1);
             clock.Tick += RenderFrame;
-
             //here create content of world
             Primitive A = null;
             if (true)
@@ -90,27 +88,51 @@ namespace Mag
                    RestitutionFactor: 0.9);
                 FkPhysicsEngine.primitives.Add(A);
             }
+            for(int grav = 0; grav<=4; grav++)
+                for (int size = 0; size <= 10; size++)
+                {
+                    //Console.WriteLine("grav:"+ grav+" size:"+size.ToString());
+                    FkPhysicsEngine.primitives.Clear();
+                    //var size = 0;
+                    for (int x = 1; x <= size; x++)
+                        for (int y = 1; y <= size; y++)
+                        {
+                            A = new Primitive(
+                           Position: new FkVector2(x * 75 + 5 * y, 1000 - y * 75 - x),
+                           Rotation: 10 * x + y,
+                           Velocity: new FkVector2(0, 0),
+                           Angular: 0,
+                           Scale: new FkVector2(25, 10),
+                           IsBox: false,
+                           IsStatic: false,
+                           ApplyGenerators: true,
+                           Mass: 10,
+                           RestitutionFactor: 0.9);
+                           FkPhysicsEngine.primitives.Add(A);
+                        }
+                    //here create define generators
+                    if (grav == 1 || grav == 2) FkPhysicsEngine.generatores.Add(new FkGravity());
+                    if (grav == 3 || grav == 4) FkPhysicsEngine.generatores.Add(new FkGravityRotation());
+                    if (grav == 2 || grav == 4) FkPhysicsEngine.generatores.Add(new FkFriction());
 
-            A = new Primitive(
-                   Position: new FkVector2(500, 900),
-                   Rotation: 0,
-                   Velocity: new FkVector2(0, 0),
-                   Angular: 0,
-                   Scale: new FkVector2(50, 10),
-                   IsBox: false,
-                   IsStatic: false,
-                   ApplyGenerators: true,
-                   Mass: 10,
-                   RestitutionFactor: 1);
-            FkPhysicsEngine.primitives.Add(A);
+                    //start animation:
+                    //clock.Start();
+                    //==========tests:
+                    var dt = DateTime.Now;
 
-            //here create define generators
-            if (true)FkPhysicsEngine.generatores.Add(new FkGravity());
-            else     FkPhysicsEngine.generatores.Add(new FkGravityRotation());
-            FkPhysicsEngine.generatores.Add(new FkFriction());
-
-            //start simualtion
-            clock.Start();
+                    //Console.WriteLine(dt.ToString());
+                    //simulation: 100 frames / second
+                    //vritual test time: 60 seconds
+                    //frame count 6000
+                    for (int i = 0; i <= 6000; i++)
+                    {
+                        FkPhysicsEngine.Update();
+                        //Console.WriteLine(i);
+                    }
+                    var delta = DateTime.Now.Subtract(dt).TotalMilliseconds;
+                    Console.WriteLine(delta.ToString());
+                }
+            RenderFrame(null, null);
         }
 
         public static readonly double thickness = 1;
