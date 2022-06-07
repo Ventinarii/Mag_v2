@@ -111,17 +111,6 @@ namespace Mag.Physics.Primitives
         }
         //========================================================================================================================circle functionality
         /// <summary>
-        /// checks if circle contains given point
-        /// </summary>
-        /// <exception cref="InvalidOperationException"></exception>
-        public bool PointInCircle(FkVector2 point)
-        {
-            if (this.IsBox)
-                throw new InvalidOperationException("this is box, not circle");
-            point = point.Subtract(this.Position);//now circle is point of reference
-            return (point.LengthSquared()) <= (this.Scale.X * this.Scale.X);
-        }
-        /// <summary>
         /// check if line intersect circle
         /// </summary>
         /// <exception cref="InvalidOperationException"></exception>
@@ -140,108 +129,7 @@ namespace Mag.Physics.Primitives
             var randevu = lineStart.Add(ab.Multiply(t));
             return randevu.LengthSquared() <= radius2;
         }
-        /// <summary>
-        /// ray cast against circle. do NOT put start point INSIDE circle
-        /// </summary>
-        /// <param name="origin">ray starting position</param>
-        /// <param name="direction"></param>
-        /// <returns>point of hit; normal of hit; t; hit?</returns>
-        public RayCastResult RayCastCircle(FkVector2 origin, FkVector2 direction) {
-            origin = origin.Subtract(this.Position);//<< relative computing
-            var fail = new RayCastResult(new FkVector2(0, 0), new FkVector2(0, 0), -1, false);
-            if (direction.LengthSquared() < 0.01) return fail;//<< drop if NaN
-            direction = direction.Normalize();
-            var orginToCircle = origin.Multiply(-1);//<< relative computing
-            var radius2 = Scale.X * Scale.X;
-            var orginToCircle2 = orginToCircle.LengthSquared();
-            // projection
-            var a = orginToCircle.DotProdcut(direction);
-            var bSq = orginToCircle2 - (a * a);
-            if (radius2 - bSq < 0)
-                return fail;
-            var f = Math.Sqrt(radius2 - bSq);
-            var t = a - f;
-            if (orginToCircle2 < radius2)
-                t = a + f;
-            if (t < 0) 
-                return fail;//<< drop if imaginary
-            var pointOfHit = origin.Add(direction.Multiply(t));//<< relative computing
-            var normalOfHit = pointOfHit.Multiply(-1).Normalize();//<< relative computing
-            var pointOfHitOff = pointOfHit.Add(this.Position);//<< relative computing
-            return new RayCastResult(pointOfHitOff, normalOfHit, t, true);
-        }
-        /// <summary>
-        /// checks if 2 circles overlap
-        /// </summary>
-        public static bool CrircleVsCircle(Primitive circleA, Primitive circleB) {
-            if (circleA.IsBox || circleB.IsBox)
-                throw new InvalidOperationException("one of these is box");
-            return circleA.Position.Subtract(circleB.Position).LengthSquared() <= FkMath.Pow2(circleA.Scale.X + circleB.Scale.X);
-        }
-        /// <summary>
-        /// checks if circle overlaps with box. expensive.
-        /// </summary>
-        public static bool CircleVsBox(Primitive circle, Primitive box) {
-            if (circle.IsBox || !box.IsBox)
-                throw new InvalidOperationException("miss match");
-            var vert = box.BoxGetVerticesRotated();
-            return
-                box.PointInBox(circle.Position) ||
-                circle.LineInCircle(vert[0], vert[1]) ||
-                circle.LineInCircle(vert[1], vert[2]) ||
-                circle.LineInCircle(vert[2], vert[3]) ||
-                circle.LineInCircle(vert[3], vert[0]);
-        }
-        /// <summary>
-        /// checks if circle overlaps with AABB. expensive.
-        /// </summary>
-        /// <returns></returns>
-        public static bool CircleVsAABB(Primitive circle, Primitive AABB)
-        {
-            if (circle.IsBox)
-                throw new InvalidOperationException("circle is box");
-            var minMax = AABB.getMinMaxRelative();
-            var swap = new FkVector2(minMax.b.X, -minMax.b.Y);
-            FkVector2[] vert = { minMax.b, swap, minMax.a, swap.Multiply(-1) };
-            for(int i = 0; i < vert.Length; i++)
-                vert[i] = vert[i].Add(AABB.Position);
-            return
-                AABB.AABBvsPoint(circle.Position) ||
-                circle.LineInCircle(vert[0], vert[1]) ||
-                circle.LineInCircle(vert[1], vert[2]) ||
-                circle.LineInCircle(vert[2], vert[3]) ||
-                circle.LineInCircle(vert[3], vert[0]);
-        }
         //========================================================================================================================box functionality
-        /// <summary>
-        /// -returns all (4) corners of the box in array ([4]) based of scale. every box is size of (1,1) so scale IS box size.
-        /// </summary>
-        /// <exception cref="InvalidOperationException"></exception>
-        public FkVector2[] BoxGetVerticesRelative() {
-            if (!this.IsBox)
-                throw new InvalidOperationException();
-
-            FkVector2[] corners = new FkVector2[4];
-            corners[0] = this.Scale;
-            corners[1] = new FkVector2(Scale.X, -Scale.Y);
-            corners[2] = corners[0].Multiply(-1);
-            corners[3] = corners[1].Multiply(-1);
-            return corners;
-        }
-        /// <summary>
-        /// -returns all (4) corners of the box in array ([4]) based of scale. every box is size of (1,1) so scale IS box size.
-        /// -adds this.Position to result
-        /// </summary>
-        /// <exception cref="InvalidOperationException"></exception>
-        public FkVector2[] BoxGetVertices()
-        {
-            if (!this.IsBox)
-                throw new InvalidOperationException();
-            FkVector2[] corners = BoxGetVerticesRelative();
-            for (int i = 0; i < 4; i++)
-                corners[i] = corners[i].Add(this.Position);
-            return corners;
-        }
         /// <summary>
         /// -returns all (4) corners of the box in array ([4]) based of scale. every box is size of (1,1) so scale IS box size.
         /// -rotates all points (as vectors) from center of mass by angle this.Rotation
@@ -289,46 +177,6 @@ namespace Mag.Physics.Primitives
             return FkMath.InRange(-Scale.X - 0.01, point.X, Scale.X + 0.01) &&
                    FkMath.InRange(-Scale.Y - 0.01, point.Y, Scale.Y + 0.01);
         }
-        /// <summary>
-        /// check if line intersect box
-        /// NOTE: solution was downgraded from relative position from corners to current state. other solution had too many edge cases and was unreaible.
-        /// </summary>
-        /// <exception cref="InvalidOperationException"></exception>
-        public bool LineInBox(FkVector2 lineStart, FkVector2 lineEnd)
-        {
-            if (!this.IsBox)
-                throw new InvalidOperationException("this is circle, not box");
-            var vert = BoxGetVerticesRotated();
-            return
-                PointInBox(lineStart) || PointInBox(lineEnd) ||
-                LineOnLine(lineStart, lineEnd, vert[0], vert[1]) ||
-                LineOnLine(lineStart, lineEnd, vert[1], vert[2]) ||
-                LineOnLine(lineStart, lineEnd, vert[2], vert[3]) ||
-                LineOnLine(lineStart, lineEnd, vert[3], vert[0]);
-        }
-        /// <summary>
-        /// checks if 2 boxes overlap. includes all tricy cases such as '+'
-        /// the most simple and realiable, the least efficient. optimize #11
-        /// NOTE: solution was downgraded from relative position from corners to current state.
-        /// </summary>
-        /// <exception cref="InvalidOperationException"></exception>
-        public static bool BoxVsBox(Primitive boxA, Primitive boxB) {//todo: optimize #11
-            if(!boxA.IsBox || !boxB.IsBox)
-                throw new InvalidOperationException("box is circle");
-            if (boxA.Scale.LengthSquared() < boxB.Scale.LengthSquared()) {
-                //check against situation where one box is inside another. for this thing to work we detect IF box B is INSIDE box A. 
-                //whithout this check situation where box A is inside box B are skipped.
-                var swap = boxA;
-                boxA = boxB;
-                boxB = swap;
-            }
-            var vertB = boxB.BoxGetVerticesRotated();
-            return
-                boxA.LineInBox(vertB[0],vertB[1]) ||
-                boxA.LineInBox(vertB[1],vertB[2]) ||
-                boxA.LineInBox(vertB[2],vertB[3]) ||
-                boxA.LineInBox(vertB[3],vertB[0]);
-        }
         //========================================================================================================================shared functionality
         /// <summary>
         /// -returns left bottom most corner of square containing this object uses:
@@ -364,20 +212,6 @@ namespace Mag.Physics.Primitives
                 return new C2<FkVector2, FkVector2>(localScale.Multiply(-1), localScale);
             }
         }
-        /// <summary>
-        /// effectivly: left bottom corner of AABB and top right corner of AABB.
-        /// -returns left bottom most corner of square containing this object uses:
-        /// --this.BoxGetVerticesRelativeRotated()) if is a box
-        /// --this.Scale, this.Scale.Multiply(-1) if circle
-        /// as a source of points to compare. 
-        /// -adds this.Position to result
-        /// </summary>
-        /// <returns>first value is minimum, second maximum</returns>
-        public C2<FkVector2, FkVector2> getMinMax()
-        {
-            var c = getMinMaxRelative();
-            return new C2<FkVector2, FkVector2>(c.a.Add(this.Position), c.b.Add(this.Position));
-        }
         //========================================================================================================================physics functionality
         /// <summary>
         /// checks if bouding box of this promitive is in collision with bouding box of other primitive.
@@ -391,77 +225,6 @@ namespace Mag.Physics.Primitives
             return
                 FkMath.InRange(mxSUMA.X, delta.X, mxSUMB.X) &&
                 FkMath.InRange(mxSUMA.Y, delta.Y, mxSUMB.Y);
-        }
-        /// <summary>
-        /// checks if bouding box of this promitive contains given point
-        /// </summary>
-        public bool AABBvsPoint(FkVector2 other) {
-            other = this.Position.Subtract(other);
-            var mx0 = getMinMaxRelative();
-            return
-                FkMath.InRange(mx0.a.X, other.X, mx0.b.X) &&
-                FkMath.InRange(mx0.a.Y, other.Y, mx0.b.Y);
-        }
-        /// <summary>
-        /// copy-paste of LineInBox()
-        /// check if line intersect AABB box
-        /// NOTE: solution was downgraded from relative position from corners to current state. other solution had too many edge cases and was unreaible.
-        /// </summary>
-        public bool AABBvsLine(FkVector2 lineStart, FkVector2 lineEnd)
-        {
-            var minMax = getMinMax();
-            var swap = new FkVector2(minMax.b.X, -minMax.b.Y);
-            FkVector2[] vert = { minMax.b, swap, minMax.a, swap.Multiply(-1) };
-            return
-                AABBvsPoint(lineStart) || AABBvsPoint(lineEnd) ||
-                LineOnLine(lineStart, lineEnd, vert[0], vert[1]) ||
-                LineOnLine(lineStart, lineEnd, vert[1], vert[2]) ||
-                LineOnLine(lineStart, lineEnd, vert[2], vert[3]) ||
-                LineOnLine(lineStart, lineEnd, vert[3], vert[0]);
-        }
-        //========================================================================================================================InsersectionDetector 2D
-        /// <summary>
-        /// check if given point is on given line
-        /// </summary>
-        public static bool PointOnLine(FkVector2 lineStart, FkVector2 lineEnd, FkVector2 point)
-        {
-            lineEnd = lineEnd.Subtract(lineStart);
-            point = point.Subtract(lineStart);
-            //now linestart is 0,0  and we only care about those 2
-            var lineLength = lineEnd.Length();//get length of line
-            if (lineLength < 0.01)
-                return false;//if line too short return false
-            lineEnd = lineEnd.Normalize();//get direction vector of line
-            var pointLength = point.Length();//get length of point
-            if (pointLength < 0.01)
-                return true;
-            point = point.Normalize();//get direction vector of point
-            return lineEnd.EqualWIthError(point) && (pointLength <= (lineLength + 0.01));
-        }
-        /// <summary>
-        /// checks if 2 lines colide
-        /// https://bryceboe.com/2006/10/23/line-segment-intersection-algorithm/
-        /// will return TRUE IF:
-        /// -lines intersect
-        /// -one line end in on another LINE
-        /// will return FALSE IF:
-        /// -one line ending touches another line ending
-        /// -lines DO NOT intersect
-        /// warry: colinear solution (just make sure 2 lines do not overlap AND have dot product of normal equal 1 or -1.
-        /// </summary>
-        /// <param name="aStart">line A</param>
-        /// <param name="aEnd">line A</param>
-        /// <param name="bStart">line B</param>
-        /// <param name="bEnd">line B</param>
-        public static bool LineOnLine(FkVector2 aStart, FkVector2 aEnd, FkVector2 bStart, FkVector2 bEnd)
-        {
-            return
-                LineOnLineCCW(aStart, bStart, bEnd) != LineOnLineCCW(aEnd, bStart, bEnd) &&
-                LineOnLineCCW(aStart, aEnd, bStart) != LineOnLineCCW(aStart, aEnd, bEnd);
-        }
-        private static bool LineOnLineCCW(FkVector2 a, FkVector2 b, FkVector2 c)
-        {
-            return (c.Y - a.Y) * (b.X - a.X) > (b.Y - a.Y) * (c.X - a.X);
         }
         //========================================================================================================================render functionality (for RAL)
         /// <summary>
